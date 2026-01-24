@@ -2,363 +2,122 @@
 
 **最終更新: 2026-01-17**
 
-このドキュメントは、Hearloom開発中に学んだ知見、技術判断の記録、再利用可能なパターンを蓄積します。
+このドキュメントは、Hearloom開発のインデックスと最新の決定事項を記録します。詳細は各ドキュメントを参照してください。
 
 ---
 
-## 📋 企画フェーズの決定事項
+## ドキュメント構造
 
-### プロダクトコンセプト
-
-**アプリ名:** Hearloom（Hear + Heirloom）
-
-**コンセプト:** 音楽と感情・記憶を紐づけて記録し、過去の自分を振り返ることで現在のモチベーションに繋げるアプリ
-
-**解決する課題:**
-- 「過去の音楽を振り返りたいが、膨大なプレイリストから探せない」
-- プレイリストが蓄積されるが管理不能（命名適当、死蔵状態）
-- 振り返りたい意欲はあるが、偶然に頼るしかない
-
-**コア価値:**
-- AIによる自動分析で記録コストゼロ
-- 「意味のある偶然」を演出するセレンディピティ通知
-- 過去の自分の感情・文脈を呼び起こす
-
-**差別化ポイント:**
-- Last.fm: データ・数字中心 → Hearloom: ストーリー・感情中心
-- Spotify Wrapped: 年1回 → Hearloom: 日常的に振り返り可能
-- 既存日記アプリ: 手動記録 → Hearloom: AI自動推定 + 手動編集
-
-### 主要機能一覧
-
-#### Must have（MVP必須）
-
-| 機能 | 詳細 | 優先度 |
-|------|------|--------|
-| Apple Music連携 | MusicKit APIで聴取履歴を取得 | P0 |
-| 聴取履歴の自動収集 | バックグラウンドで定期同期 | P0 |
-| AIによる感情・文脈の自動推定 | 時間帯×ジャンル×頻度から推定 | P0 |
-| 時系列での履歴閲覧 | 月別、年別で過去を振り返れるUI | P0 |
-| セレンディピティ通知 | 週1-2回、意味のあるタイミングで | P0 |
-| 手動編集機能 | AI推定結果をユーザーが修正可能 | P0 |
-
-#### Should have（価値向上）
-
-| 機能 | 詳細 | 優先度 |
-|------|------|--------|
-| YouTube連携 | YouTube Data APIで視聴履歴を取得 | P1 |
-| AIによる異常値検出 | 「普段と違う曲を聴いていた時期」を検出 | P1 |
-| 年次レポート | Spotify Wrappedの強化版 | P1 |
-| 場所情報との紐付け | オプトイン方式 | P2 |
-
-#### Could have（後回し可能）
-
-| 機能 | 詳細 | 優先度 |
-|------|------|--------|
-| Spotify連携 | ターゲットユーザーの利用状況次第 | P3 |
-| ソーシャル機能 | 友達との共有 | P3 |
-
-#### Won't have（MVPでは除外）
-
-| 機能 | 除外理由 |
-|------|----------|
-| 自動整理ライブラリ | 既存サービスで代用可能、差別化不足 |
-| 楽曲再生機能 | ライセンス問題、Apple Music/YouTubeに委譲 |
-
-### ターゲットユーザー
-
-#### ペルソナ
-
-**名前:** 音楽ヘビーリスナー（週15時間以上）
-
-**属性:**
-- 1日2時間以上音楽を聴く
-- Apple Music/Spotifyの有料プラン加入者
-- 音楽を「感情コントロールツール」として意図的に使い分ける
-- プレイリストを多数作成するが、管理は苦手
-
-**音楽聴取パターン:**
-| シチュエーション | ジャンル | 目的 |
-|-----------------|----------|------|
-| 移動中/仕事中 | chill、ハウス、R&B | 没頭・集中 |
-| 運動/プレゼン前 | EDM、アップビート | 高揚・興奮 |
-| 家事中 | 多様なジャンル | リラックス・解放 |
-
-**課題:**
-- 100個以上のプレイリストが蓄積されているが管理不能
-- 「振り返りたいが探せない」状態
-- 偶然に頼るしかない
-
-**求めるもの:**
-- 記録コストゼロで過去の音楽体験が残る
-- 「ふとした瞬間」に過去を思い出させてくれる
-- 自分の音楽遍歴がストーリーとして可視化される
-
-#### ユーザージャーニー
-
-**Phase 1: 導入**
-1. アプリをインストール
-2. Apple Musicでログイン（権限許可）
-3. 過去の再生履歴をインポート
-4. AIが過去の聴取パターンを分析
-5. 「あなたの音楽の旅が始まります」
-
-**Phase 2: 日常利用（記録）**
-1. ユーザーは普段通りApple Musicで音楽を聴く
-2. Hearloomがバックグラウンドで履歴を収集
-3. AIが時間帯・ジャンル・頻度から感情を自動推定
-4. 週2回程度「今の気分は？」通知 → ワンタップで確認/修正
-
-**Phase 3: 振り返り（価値提供）**
-1. 週1-2回「3年前、あなたはこの曲を聴いていました」通知
-2. アプリを開くと時系列で過去の履歴を閲覧可能
-3. AIが「2022年夏、普段と違う曲を聴いていた時期」を検出して提案
-4. 年次レポートで1年間の音楽体験をストーリー化
-
-### 技術的検証項目（次フェーズで実施）
-
-#### Apple Music API（MusicKit）
-- [ ] 聴取履歴を自動収集できるか？
-- [ ] 取得できるデータの粒度は？（曲、時刻、再生時間）
-- [ ] API制限（レートリミット、呼び出し上限）
-- [ ] ユーザー認証フローの複雑さ
-
-#### YouTube Data API
-- [ ] 視聴履歴へのアクセスは可能か？
-- [ ] YouTube Musicとの区別は可能か？
-- [ ] API制限（1日10,000クエリ）内で運用可能か？
-
-#### AI/機械学習
-- [ ] 聴取パターンから感情を推定するロジック
-- [ ] 「普段と違う」を検出するアルゴリズム
-- [ ] ユーザーごとの学習に必要なデータ量
-
-### 残存リスク
-
-| リスク | 深刻度 | 対策 |
-|--------|--------|------|
-| Apple Music APIの制約で履歴取得不可 | 高 | 技術検証で早期確認、代替手段検討 |
-| マネタイゼーション困難 | 高 | プレミアム機能の設計（AI分析強化、複数プラットフォーム統合） |
-| 継続利用率の低下 | 中 | 通知設計の工夫（頻度・内容の最適化） |
-| Spotify/Appleが同機能を実装 | 中 | 感情・文脈記録で差別化、先行者優位を確保 |
-
-### ユーザーインタビュー結果サマリー
-
-**実施日:** 2026-01-17
-**対象:** プロジェクトオーナー（ヘビーリスナー、1日6時間聴取）
-
-**主要な発見:**
-1. 音楽を「感情コントロールツール」として意図的に使い分けている
-2. 100個のプレイリストが蓄積されているが管理不能
-3. 「振り返りたいが探せない」という明確な課題あり
-4. 感情タグ付け機能（シナリオC）が最も刺さる
-5. AI自動分析 + 手動編集のハイブリッドアプローチが理想
-6. 課金意欲は月額300円程度（条件付き）、A-C機能だけでは「基本無料」と認識
-
-### 次のステップ
-
-**Phase 1: 技術的実現可能性の検証（1-2週間）**
-- Apple Music API（MusicKit）の調査・プロトタイプ
-- YouTube Data APIの調査
-- 聴取履歴取得の実機検証
-
-**Phase 2: 競合分析の深掘り（1週間）**
-- Last.fmの詳細分析
-- Spotify Wrappedとの比較
-- 類似アプリの失敗要因分析
-
-**Phase 3: プロダクト設計（2週間）**
-- ワイヤーフレーム作成
-- データモデル設計
-- 通知設計の詳細化
-
-**Phase 4: MVP実装（4-8週間）**
-- iOS版から開発開始（ターゲットユーザーがApple Music利用）
-- Android版は後続
+```
+Hearloom/
+├── SKILL.md                                 # このファイル（インデックス）
+├── docs/
+│   ├── product/
+│   │   ├── concept.md                       # プロダクトコンセプト
+│   │   ├── features.md                      # 機能一覧
+│   │   └── user-journey.md                  # ユーザージャーニー
+│   ├── tech/
+│   │   ├── _template-api-research.md        # 技術調査テンプレート
+│   │   ├── api-research-apple-music.md      # Apple Music API調査
+│   │   ├── api-research-spotify.md          # Spotify API調査
+│   │   ├── api-research-youtube.md          # YouTube API調査
+│   │   └── verification-summary.md          # 技術検証総括
+│   └── design/
+│       ├── design-system.md                 # デザインシステム
+│       └── screens.md                       # 画面設計
+```
 
 ---
 
-## 🎨 デザインフェーズの決定事項
+## 最新の重要な決定事項（過去7日間）
 
-### プラットフォーム共通デザイン
+### 2026-01-17: 技術検証フェーズ完了
 
-#### デザインシステム基本方針
-- iOS/Android両方に適用する共通のデザイン原則とスタイル
-- カラーパレット、タイポグラフィ、スペーシングなどの基本定義
-- プラットフォーム間で一貫したユーザー体験を提供
+**採用技術スタック（暫定）:**
+- **主要プラットフォーム**: Spotify Web API（タイムスタンプ + Audio Features取得可能）
+- **補助的手段**: 共有メニュー方式（iOS: Share Extension、Android: Share Intent）
+- **将来的選択肢**: Apple Music API（タイムスタンプなしだが、ジャンル×頻度分析は可能）
 
-#### プラットフォーム固有の配慮
-- **iOS**: Human Interface Guidelinesに準拠（Navigation Bar、Tab Bar、SF Symbols等）
-- **Android**: Material Designに準拠（App Bar、Bottom Navigation、Material Icons等）
-- 各プラットフォームのユーザーが慣れ親しんだUIパターンを尊重
+**不採用:**
+- YouTube Data API（視聴履歴APIが2016年から無効化）
+- ShazamKit（iOS/イヤホン使用時は実現不可能）
 
-### デザインシステム（iOS/SwiftUI実装用）
+**残された課題:**
+- Spotify Development Mode（25ユーザー制限）の突破戦略
+- 定期ポーリング最適化（50曲制限内でのデータ欠損回避）
+- 手動記録の記録率向上（現在24-44%）
 
-#### カラーパレット
-```swift
-// 例: プライマリカラー定義
-extension Color {
-    static let primaryColor = Color(hex: "#000000")
-    static let secondaryColor = Color(hex: "#000000")
-    // ... 他の色定義
-}
-```
+詳細: [docs/tech/verification-summary.md](docs/tech/verification-summary.md)
 
-#### タイポグラフィ
-```swift
-// 例: フォント定義
-extension Font {
-    static let headingLarge = Font.system(size: 32, weight: .bold)
-    static let headingMedium = Font.system(size: 24, weight: .semibold)
-    // ... 他のフォント定義
-}
-```
+### 2026-01-17: プロダクトコンセプト確定
 
-#### Spacing/Padding規則
-```swift
-// 例: スペーシング定義
-enum Spacing {
-    static let xs: CGFloat = 4
-    static let sm: CGFloat = 8
-    static let md: CGFloat = 16
-    static let lg: CGFloat = 24
-    static let xl: CGFloat = 32
-}
-```
+**コンセプト**: 音楽と感情・記憶を紐づけて記録し、過去の自分を振り返ることで現在のモチベーションに繋げるアプリ
 
-### デザインシステム（Android/Jetpack Compose実装用）
+**MVP機能（P0）:**
+- Apple Music連携（または Spotify連携）
+- 聴取履歴の自動収集
+- AIによる感情・文脈の自動推定
+- 時系列での履歴閲覧
+- セレンディピティ通知
+- 手動編集機能
 
-#### カラーパレット
-```kotlin
-// 例: プライマリカラー定義
-val PrimaryColor = Color(0xFF000000)
-val SecondaryColor = Color(0xFF000000)
-// ... 他の色定義
-```
-
-#### タイポグラフィ
-```kotlin
-// 例: タイポグラフィ定義
-val Typography = Typography(
-    headlineLarge = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.Bold),
-    headlineMedium = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
-    // ... 他のスタイル定義
-)
-```
-
-#### Spacing/Padding規則
-```kotlin
-// 例: スペーシング定義
-object Spacing {
-    val xs = 4.dp
-    val sm = 8.dp
-    val md = 16.dp
-    val lg = 24.dp
-    val xl = 32.dp
-}
-```
-
-### 画面一覧と遷移図
-※画面構成と遷移をここに記録
-
-### iOS: SwiftUI Preview確認記録
-
-#### [画面名/コンポーネント名]
-- **日付**: YYYY-MM-DD
-- **確認内容**: PreviewでのUIチェック結果
-- **調整事項**: 実装で調整した内容
-- **デザイン意図**: なぜこのデザインにしたか
-- **技術的考慮**: SwiftUIでの実装上の工夫や注意点
-
-### Android: Jetpack Compose Preview確認記録
-
-#### [画面名/コンポーネント名]
-- **日付**: YYYY-MM-DD
-- **確認内容**: PreviewでのUIチェック結果
-- **調整事項**: 実装で調整した内容
-- **デザイン意図**: なぜこのデザインにしたか
-- **技術的考慮**: Jetpack Composeでの実装上の工夫や注意点
-
-### アクセシビリティ対応
-
-#### iOS
-- **VoiceOver対応**: 実装した対応内容
-- **Dynamic Type対応**: フォントサイズの動的調整対応
-- **カラーコントラスト**: WCAG基準への準拠状況
-
-#### Android
-- **TalkBack対応**: 実装した対応内容
-- **スケーラブルテキスト対応**: フォントサイズの動的調整対応
-- **カラーコントラスト**: WCAG基準への準拠状況
+詳細: [docs/product/concept.md](docs/product/concept.md)、[docs/product/features.md](docs/product/features.md)
 
 ---
 
-## 💻 実装フェーズの知見
+## クイックリンク
 
-### 技術選択の記録
+### プロダクト企画
+- [プロダクトコンセプト](docs/product/concept.md)
+- [機能一覧](docs/product/features.md)
+- [ユーザージャーニー](docs/product/user-journey.md)
 
-#### [日付] [技術名]を選択
-- **プラットフォーム**: iOS / Android / 共通
-- **検討した選択肢**:
-- **選定理由**:
-- **トレードオフ**:
+### 技術調査
+- [技術検証総括](docs/tech/verification-summary.md)
+- [Apple Music API調査](docs/tech/api-research-apple-music.md)
+- [Spotify API調査](docs/tech/api-research-spotify.md)
+- [YouTube API調査](docs/tech/api-research-youtube.md)
+- [技術調査テンプレート](docs/tech/_template-api-research.md)
+
+### デザイン
+- [デザインシステム](docs/design/design-system.md)
+- [画面設計](docs/design/screens.md)
+
+---
+
+## 実装知見（実装フェーズで追記）
 
 ### iOS実装
 
 #### プロジェクト固有パターン
 
-##### [パターン名]
-```swift
-// 再利用可能なコードスニペット
-```
+※実装開始後に追記
 
 #### トラブルシューティング
 
-##### [問題のタイトル]
-- **問題**:
-- **原因**:
-- **解決策**:
+※実装開始後に追記
 
 ### Android実装
 
 #### プロジェクト固有パターン
 
-##### [パターン名]
-```kotlin
-// 再利用可能なコードスニペット
-```
+※実装開始後に追記
 
 #### トラブルシューティング
 
-##### [問題のタイトル]
-- **問題**:
-- **原因**:
-- **解決策**:
-
-### プラットフォーム間の共通実装知見
-
-#### [共通パターン/設計方針]
-- **iOS実装**:
-- **Android実装**:
-- **共通の考え方**:
+※実装開始後に追記
 
 ---
 
-## 🧪 テスト戦略
-※実装フェーズで具体化
+## 更新履歴
 
----
-
-## 🚀 リリース準備
-※リリースフェーズで具体化
-
----
-
-## 📝 更新履歴
-- 2026-01-17: 初期版作成
-- 2026-01-17: mobile-app-foundation-architect起動 - 実装ベースデザイン対応の調整（CLAUDE.md、ui-ux-designer.md、SKILL.md更新）
-- 2026-01-17: mobile-app-foundation-architect起動 - エージェント可視性とタスク振り分け規約の策定（CLAUDE.mdに新規セクション追加）
-- 2026-01-17: メインのClaude Code - 最重要ルール「エージェントエラー時の対応フロー」をCLAUDE.mdに追加
-- 2026-01-17: mobile-app-foundation-architect起動 - iOS/Android両対応（ネイティブ個別開発）への構造最適化（プロジェクト構造変更、CLAUDE.md/SKILL.md更新）
-- 2026-01-17: メインのClaude Code - 最重要ルール「徹底的なフィードバック原則」をCLAUDE.mdに追加（すべてのエージェントはバチバチに厳しくフィードバック、事実ベース分析必須）
+- 2026-01-17: SKILL.md構造改善 - ドキュメント分割によりインデックス化、最新決定事項のみを本ファイルに記録
+- 2026-01-17: mobile-tech-lead - 技術検証フェーズ完了。Spotify API/YouTube Data API/共有メニュー方式/ShazamKit、計5つのアプローチを検証。最終推奨：Spotify API（自動記録）+ 共有メニュー（手動記録）のハイブリッド方式
+- 2026-01-17: mobile-tech-lead - Apple Music API（MusicKit）技術調査完了。重大な制約を発見：タイムスタンプ（再生時刻）取得不可、バックグラウンド同期保証なし。コア機能「時間帯×ジャンル×頻度からAI推定」に直接的影響
 - 2026-01-17: product-planning-partner - 企画フェーズ完了（プロダクトコンセプト、MVP機能一覧、ターゲットユーザー、ユーザージャーニー、技術検証項目、残存リスクを記録）
+- 2026-01-17: メインのClaude Code - 最重要ルール「徹底的なフィードバック原則」をCLAUDE.mdに追加（すべてのエージェントはバチバチに厳しくフィードバック、事実ベース分析必須）
+- 2026-01-17: mobile-app-foundation-architect - iOS/Android両対応（ネイティブ個別開発）への構造最適化（プロジェクト構造変更、CLAUDE.md/SKILL.md更新）
+- 2026-01-17: メインのClaude Code - 最重要ルール「エージェントエラー時の対応フロー」をCLAUDE.mdに追加
+- 2026-01-17: mobile-app-foundation-architect - エージェント可視性とタスク振り分け規約の策定（CLAUDE.mdに新規セクション追加）
+- 2026-01-17: mobile-app-foundation-architect - 実装ベースデザイン対応の調整（CLAUDE.md、ui-ux-designer.md、SKILL.md更新）
+- 2026-01-17: 初期版作成
