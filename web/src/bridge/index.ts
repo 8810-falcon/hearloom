@@ -7,6 +7,7 @@
 
 import type {
   NativeBridge,
+  HearloomBridge,
   Track,
   ListeningHistoryEntry,
   EmotionTag,
@@ -54,7 +55,7 @@ const callIOSBridge = async <T>(
     };
 
     // ネイティブに送信
-    window.webkit.messageHandlers.hearloom.postMessage({
+    window.webkit!.messageHandlers!.hearloom!.postMessage({
       method,
       params,
       callbackId,
@@ -175,6 +176,71 @@ export const nativeBridge: NativeBridge = {
 
   shareTrack: (trackId: string) => {
     return callNative<void>('shareTrack', { trackId });
+  },
+};
+
+/**
+ * Hearloom MVP用ブリッジAPI実装
+ *
+ * docs/design/screens.md のブリッジAPI仕様に準拠
+ */
+export const hearloomBridge: HearloomBridge = {
+  getSharedUrl: async () => {
+    // ブラウザ開発時はクエリパラメータから取得
+    if (!isIOS() && !isAndroid()) {
+      const params = new URLSearchParams(window.location.search);
+      const url = params.get('url');
+      if (url) {
+        console.log('Got shared URL from query params:', url);
+        return url;
+      }
+      // 開発用のデフォルトURL
+      console.warn('No shared URL found, using mock URL for development');
+      return 'https://spotify.link/mock-track-id';
+    }
+
+    // iOS: コールバック方式
+    if (isIOS()) {
+      return callIOSBridge<string | null>('getSharedUrl');
+    }
+
+    // Android: 直接呼び出し（同期）
+    if (isAndroid()) {
+      try {
+        const result = (window as any).HearloomBridge.getSharedUrl();
+        const data = JSON.parse(result);
+        return data.url || null;
+      } catch (error) {
+        console.error('Android getSharedUrl error:', error);
+        return null;
+      }
+    }
+
+    return null;
+  },
+
+  closeApp: () => {
+    if (!isIOS() && !isAndroid()) {
+      console.log('closeApp called in browser - navigating back');
+      // ブラウザでは履歴を戻るか、ウィンドウを閉じる
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.close();
+      }
+      return;
+    }
+
+    // iOS: コールバック方式
+    if (isIOS()) {
+      callIOSBridge<void>('closeApp');
+      return;
+    }
+
+    // Android: 直接呼び出し
+    if (isAndroid()) {
+      (window as any).HearloomBridge.closeApp();
+    }
   },
 };
 

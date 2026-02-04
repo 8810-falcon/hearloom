@@ -1,0 +1,69 @@
+/**
+ * 編集画面のスタイル
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+.content {
+  flex: 1;
+  padding: 24px 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.section {
+  margin-bottom: 24px;
+}
+
+.dateTime {
+  font-size: 16px;
+  font-weight: 500;
+  color: #666666;
+  padding: 4px 0;
+}
+
+.label {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 12px;
+}
+
+.required {
+  font-size: 14px;
+  font-weight: 500;
+  color: #d32f2f;
+}
+
+.buttonSection {
+  margin-top: 32px;
+  padding-bottom: 16px;
+}
+
+/* ローディング状態 */
+.loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666666;
+  font-size: 16px;
+}
+
+/* エラー状態 */
+.error {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d32f2f;
+  font-size: 16px;
+  padding: 24px;
+  text-align: center;
+}

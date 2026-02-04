@@ -60,6 +60,25 @@ export interface NotificationParams {
 }
 
 /**
+ * Hearloom MVP用ブリッジAPI
+ *
+ * docs/design/screens.md のブリッジAPI仕様に準拠
+ */
+export interface HearloomBridge {
+  /**
+   * 共有URLを取得（記録画面起動時）
+   * 音楽アプリからの共有メニュー経由で渡されたURLを取得
+   */
+  getSharedUrl(): Promise<string | null>;
+
+  /**
+   * アプリを閉じる（保存/キャンセル後）
+   * WebViewを閉じて元のアプリに戻る
+   */
+  closeApp(): void;
+}
+
+/**
  * ネイティブブリッジAPI
  *
  * Web UIからネイティブ機能を呼び出すためのインターフェース

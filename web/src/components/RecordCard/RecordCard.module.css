@@ -1,0 +1,63 @@
+/**
+ * 記録カードのスタイル
+ */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 16px;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card:hover {
+  background-color: #fafafa;
+}
+
+.card:active {
+  transform: scale(0.98);
+  background-color: #f5f5f5;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+}
+
+.mood {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 16px;
+}
+
+.moodLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333333;
+}
+
+.moodEmoji {
+  font-size: 14px;
+  color: #666666;
+}
+
+.url {
+  font-size: 13px;
+  color: #1976d2;
+  word-break: break-all;
+}
+
+.situation {
+  font-size: 14px;
+  color: #333333;
+  line-height: 1.5;
+}

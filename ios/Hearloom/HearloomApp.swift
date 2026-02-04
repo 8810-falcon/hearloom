@@ -2,19 +2,36 @@
 //  HearloomApp.swift
 //  Hearloom
 //
-//  Created by 小椋　隼 on 2025/11/04.
+//  ネイティブシェルのエントリーポイント
+//  WebView UIをホスティングし、Share Extensionからの共有URLを処理する
 //
 
 import SwiftUI
 
 @main
 struct HearloomApp: App {
-    let persistenceController = PersistenceController.shared
+    @StateObject private var sharedUrlManager = SharedUrlManager.shared
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+            MainView()
+                .environmentObject(sharedUrlManager)
+                .onOpenURL { url in
+                    // ディープリンクからの共有URLを処理
+                    handleIncomingUrl(url)
+                }
         }
+    }
+
+    private func handleIncomingUrl(_ url: URL) {
+        // hearloom://share?url=xxx 形式のディープリンクを処理
+        guard url.scheme == "hearloom",
+              url.host == "share",
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let sharedUrl = components.queryItems?.first(where: { $0.name == "url" })?.value else {
+            return
+        }
+
+        sharedUrlManager.setSharedUrl(sharedUrl)
     }
 }
