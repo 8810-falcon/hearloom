@@ -1,6 +1,6 @@
 # Hearloom Development Knowledge Base
 
-**最終更新: 2026-01-17**
+**最終更新: 2026-02-04**
 
 このドキュメントは、Hearloom開発のインデックスと最新の決定事項を記録します。詳細は各ドキュメントを参照してください。
 
@@ -31,15 +31,39 @@ Hearloom/
 
 ## 最新の重要な決定事項（過去7日間）
 
+### 2026-02-04: MVP方針の定義
+
+**コア価値の定義:**
+- 音楽×感情×状況の記録体験の価値検証
+
+**MVP方針:**
+- 共有メニュー経由の手動記録でMVP実装
+- 「記録コストゼロ」はWANT（将来的なオプション）、コアバリューではない
+- まずは「音楽と感情・状況を記録することの価値」を検証する
+
+**MVP機能（Must have）:**
+1. 音楽アプリ（AppleMusic, Spotify, YouTube）の共有メニューからHearloomが起動
+2. 曲の共有URLが自動で記録画面に反映
+3. 気分選択（必須）+ 状況の一言入力（必須）
+4. 日時情報とともに保存（保存: YYYYMMDDHHMM、表示: 朝/昼/夕/夜）※WebViewのLocalStrageに保存
+5. 記録一覧の表示（日付順・最新順）
+6. 記録の編集機能
+
+**優先度の整理:**
+- P1: セレンディピティ通知、履歴閲覧強化、検索・絞り込み
+- P2: Spotify/Apple Music連携（自動収集）、AI感情推定、年次レポート
+- Won't have: YouTube連携（API無効化で技術的に不可能）
+
+詳細: [docs/product/features.md](docs/product/features.md)、[docs/product/concept.md](docs/product/concept.md)
+
 ### 2026-02-02: ハイブリッドアーキテクチャ採用
 
-**アーキテクチャ方針変更**: ネイティブ個別開発 → **ハイブリッドアーキテクチャ（ネイティブシェル + WebView UI）**
+**アーキテクチャ方針**: ハイブリッドアーキテクチャ（ネイティブシェル + WebView UI）
 
 **採用理由:**
 - 個人開発 × 両プラットフォーム対応 × 開発スピード最優先
-- WebViewアプリの開発経験あり、アーキテクチャへの理解が深い
-- SwiftUI/Jetpack Composeの実務経験（2年）、React経験あり
-- 将来的なWeb版展開も視野
+- WebViewアプリの開発経験あり、アーキテクチャへの理解がある
+- SwiftUI/Jetpack Composeの実務経験（2年）、React経験少しあり
 
 **技術スタック:**
 - **iOS**: Swift + SwiftUI + WKWebView
@@ -162,6 +186,7 @@ Hearloom/
 
 ## 更新履歴
 
+- 2026-02-04: product-planning-partner + メインのClaude Code - MVP方針の再定義。コア価値を「音楽×感情×状況の記録体験」に変更。共有メニュー経由の手動記録でMVP実装。features.md、concept.md、user-journey.md更新
 - 2026-02-02: mobile-app-foundation-architect - ハイブリッドアーキテクチャ（ネイティブシェル + WebView UI）採用。CLAUDE.md、ui-ux-designer.md、mobile-tech-lead.md更新。web-ui-developerエージェント新規作成。/web/ディレクトリ構造作成（React + TypeScript）
 - 2026-01-17: SKILL.md構造改善 - ドキュメント分割によりインデックス化、最新決定事項のみを本ファイルに記録
 - 2026-01-17: mobile-tech-lead - 技術検証フェーズ完了。Spotify API/YouTube Data API/共有メニュー方式/ShazamKit、計5つのアプローチを検証。最終推奨：Spotify API（自動記録）+ 共有メニュー（手動記録）のハイブリッド方式
