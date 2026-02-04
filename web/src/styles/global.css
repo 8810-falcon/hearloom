@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  font-family: "IBM Plex Sans", "Noto Sans JP", sans-serif;
+  color: var(--text);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-overflow-scrolling: touch;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+}
+
+* {
+  overscroll-behavior: none;
+}

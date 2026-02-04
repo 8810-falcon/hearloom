@@ -1,303 +1,175 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Badge,
-  Button,
-  List,
-  ListItem,
-  RadioButton,
-  RadioGroup,
-  TextArea,
-  TextField,
-} from '@serendie/ui';
 import './App.css';
+import { getSharedUrlFromLocation } from './bridge/share';
+import {
+  RecordEntry,
+  createRecord,
+  loadRecords,
+  saveRecords,
+  sortRecords,
+  updateRecord,
+} from './stores/recordStore';
+import ShareCaptureScreen from './screens/ShareCaptureScreen';
+import TimelineScreen from './screens/TimelineScreen';
+import EditScreen from './screens/EditScreen';
+import { RecordFormErrors } from './components/RecordForm';
 
-type TimeBucket = '朝' | '昼' | '夕' | '夜';
+type ViewMode = 'share' | 'timeline' | 'edit';
 
-type RecordEntry = {
-  id: string;
-  sharedUrl: string;
-  mood: string;
-  note: string;
-  createdAt: string; // ISO
-  timeBucket: TimeBucket;
-};
-
-type ErrorField = '' | 'sharedUrl' | 'mood' | 'note';
-
-const MOOD_OPTIONS = [
-  '嬉しい',
-  '落ち着く',
-  '集中',
-  'エネルギッシュ',
-  '切ない',
-  '懐かしい',
-  '高揚',
-  'リラックス',
-];
-
-const STORAGE_KEY = 'hearloom.records.v1';
-
-const getTimeBucket = (date: Date): TimeBucket => {
-  const hour = date.getHours();
-  if (hour >= 5 && hour < 11) return '朝';
-  if (hour >= 11 && hour < 15) return '昼';
-  if (hour >= 15 && hour < 19) return '夕';
-  return '夜';
-};
-
-const formatDateLabel = (iso: string, bucket: TimeBucket): string => {
-  const date = new Date(iso);
-  const formatted = new Intl.DateTimeFormat('ja-JP', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(date);
-  return `${formatted}・${bucket}`;
-};
-
-const loadRecords = (): RecordEntry[] => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as RecordEntry[];
-    if (!Array.isArray(parsed)) return [];
-    return parsed;
-  } catch (error) {
-    console.warn('Failed to load records', error);
-    return [];
-  }
-};
-
-const saveRecords = (records: RecordEntry[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-};
-
-const getSharedUrlFromLocation = (): string => {
-  const params = new URLSearchParams(window.location.search);
-  return (
-    params.get('sharedUrl') ||
-    params.get('url') ||
-    params.get('text') ||
-    ''
-  );
-};
-
-const createId = (): string => {
-  if (crypto && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
-  }
-  return `hl-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-};
+const initialErrors: RecordFormErrors = {};
 
 function App() {
   const [records, setRecords] = useState<RecordEntry[]>([]);
   const [sharedUrl, setSharedUrl] = useState('');
   const [mood, setMood] = useState('');
   const [note, setNote] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [errorField, setErrorField] = useState<ErrorField>('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errors, setErrors] = useState<RecordFormErrors>(initialErrors);
+  const [view, setView] = useState<ViewMode>('timeline');
+  const [editing, setEditing] = useState<RecordEntry | null>(null);
 
   useEffect(() => {
     const initial = loadRecords();
     setRecords(initial);
-    setSharedUrl(getSharedUrlFromLocation());
+    const shared = getSharedUrlFromLocation();
+    if (shared) {
+      setSharedUrl(shared);
+      setView('share');
+    }
   }, []);
 
-  const sortedRecords = useMemo(() => {
-    return [...records].sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt)
-    );
-  }, [records]);
+  const sortedRecords = useMemo(() => sortRecords(records), [records]);
 
   const resetForm = () => {
     setMood('');
     setNote('');
-    setEditingId(null);
-    setErrorField('');
-    setErrorMessage('');
+    setErrors(initialErrors);
+  };
+
+  const validate = (): boolean => {
+    const nextErrors: RecordFormErrors = {};
+    if (!sharedUrl.trim()) {
+      nextErrors.sharedUrl = '音楽アプリの共有から開いてください';
+    }
+    if (!mood.trim()) {
+      nextErrors.mood = '気分を選択してください';
+    }
+    if (!note.trim()) {
+      nextErrors.note = '状況を一言で入力してください';
+    }
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handleSave = () => {
-    if (!sharedUrl.trim()) {
-      setErrorField('sharedUrl');
-      setErrorMessage('共有URLが必要です。音楽アプリから共有してください。');
-      return;
-    }
-    if (!mood.trim()) {
-      setErrorField('mood');
-      setErrorMessage('気分を選択してください。');
-      return;
-    }
-    if (!note.trim()) {
-      setErrorField('note');
-      setErrorMessage('状況を一言入力してください。');
-      return;
-    }
-
-    const now = new Date();
-    const createdAt = now.toISOString();
-    const timeBucket = getTimeBucket(now);
-
-    if (editingId) {
-      const updated = records.map((record) =>
-        record.id === editingId
-          ? { ...record, sharedUrl, mood, note }
-          : record
-      );
-      setRecords(updated);
-      saveRecords(updated);
-      resetForm();
-      return;
-    }
-
-    const entry: RecordEntry = {
-      id: createId(),
-      sharedUrl: sharedUrl.trim(),
-      mood: mood.trim(),
-      note: note.trim(),
-      createdAt,
-      timeBucket,
-    };
-
+    if (!validate()) return;
+    const entry = createRecord({ sharedUrl, mood, note });
     const updated = [entry, ...records];
     setRecords(updated);
     saveRecords(updated);
     resetForm();
+    setView('timeline');
+  };
+
+  const handleUpdate = () => {
+    if (!editing) return;
+    if (!validate()) return;
+    const updatedEntry = updateRecord(editing, { sharedUrl, mood, note });
+    const updated = records.map((record) =>
+      record.id === editing.id ? updatedEntry : record
+    );
+    setRecords(updated);
+    saveRecords(updated);
+    setEditing(null);
+    resetForm();
+    setView('timeline');
   };
 
   const handleEdit = (entry: RecordEntry) => {
-    setEditingId(entry.id);
+    setEditing(entry);
     setSharedUrl(entry.sharedUrl);
     setMood(entry.mood);
     setNote(entry.note);
-    setErrorField('');
-    setErrorMessage('');
+    setErrors(initialErrors);
+    setView('edit');
+  };
+
+  const handleClear = () => {
+    resetForm();
+  };
+
+  const handleCancelEdit = () => {
+    setEditing(null);
+    resetForm();
+    setView('timeline');
+  };
+
+  const onSharedUrlChange = (value: string) => {
+    setSharedUrl(value);
+    if (errors.sharedUrl) {
+      setErrors({ ...errors, sharedUrl: undefined });
+    }
+  };
+
+  const onMoodChange = (value: string) => {
+    setMood(value);
+    if (errors.mood) {
+      setErrors({ ...errors, mood: undefined });
+    }
+  };
+
+  const onNoteChange = (value: string) => {
+    setNote(value);
+    if (errors.note) {
+      setErrors({ ...errors, note: undefined });
+    }
   };
 
   return (
     <div className="app-shell">
       <header className="hero">
-        <div className="hero-head">
-          <span className="hero-eyebrow">Playlist Mode</span>
+        <div>
+          <p className="hero-eyebrow">Share MVP</p>
           <h1>Hearloom</h1>
-          <p>音楽と感情・状況を紐づける記録</p>
+          <p className="hero-sub">音楽と感情・状況を紐づける記録</p>
         </div>
         <div className="hero-stats">
-          <Badge>Share MVP</Badge>
-          <Badge>{sortedRecords.length} Records</Badge>
+          <span className="pill">{sortedRecords.length} Records</span>
+          <span className="pill">Warm memory</span>
         </div>
       </header>
 
       <main className="content">
-        <section className="panel">
-          <div className="panel-header">
-            <h2>{editingId ? '記録を編集' : '新しい記録'}</h2>
-            <span className="panel-sub">共有メニューからのURLを貼り付け</span>
-          </div>
+        {view === 'share' && (
+          <ShareCaptureScreen
+            sharedUrl={sharedUrl}
+            mood={mood}
+            note={note}
+            errors={errors}
+            onSharedUrlChange={onSharedUrlChange}
+            onMoodChange={onMoodChange}
+            onNoteChange={onNoteChange}
+            onSubmit={handleSave}
+            onClear={handleClear}
+          />
+        )}
 
-          <div className="stack">
-            <TextField
-              label="共有URL"
-              placeholder="共有されたURLが自動反映されます"
-              description="音楽アプリの共有メニューから開くと自動入力されます"
-              required
-              value={sharedUrl}
-              onChange={(event) => setSharedUrl(event.target.value)}
-              invalid={errorField === 'sharedUrl'}
-              invalidMessage={
-                errorField === 'sharedUrl' ? errorMessage : undefined
-              }
-            />
+        {view === 'edit' && (
+          <EditScreen
+            sharedUrl={sharedUrl}
+            mood={mood}
+            note={note}
+            errors={errors}
+            onSharedUrlChange={onSharedUrlChange}
+            onMoodChange={onMoodChange}
+            onNoteChange={onNoteChange}
+            onSubmit={handleUpdate}
+            onCancel={handleCancelEdit}
+          />
+        )}
 
-            <div className="field-block">
-              <div className="field-title">
-                <span>気分</span>
-                <span className="field-required">必須</span>
-              </div>
-              <RadioGroup
-                value={mood}
-                onValueChange={(details) => {
-                  setMood(details.value ?? '');
-                  if (errorField === 'mood') {
-                    setErrorField('');
-                    setErrorMessage('');
-                  }
-                }}
-                orientation="horizontal"
-                invalid={errorField === 'mood'}
-              >
-                <div className="mood-grid">
-                  {MOOD_OPTIONS.map((option) => (
-                    <RadioButton key={option} value={option} label={option} />
-                  ))}
-                </div>
-              </RadioGroup>
-              {errorField === 'mood' && (
-                <p className="field-error">{errorMessage}</p>
-              )}
-            </div>
-
-            <TextArea
-              label="状況（必須）"
-              placeholder="例: 通勤中に聴いて集中できた"
-              autoAdjustHeight
-              required
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              invalid={errorField === 'note'}
-              invalidMessage={errorField === 'note' ? errorMessage : undefined}
-            />
-          </div>
-
-          <div className="actions">
-            <Button size="medium" styleType="filled" onClick={handleSave}>
-              {editingId ? '更新する' : '保存する'}
-            </Button>
-            <Button size="medium" styleType="outlined" onClick={resetForm}>
-              クリア
-            </Button>
-          </div>
-        </section>
-
-        <section className="panel">
-          <div className="panel-header">
-            <h2>最近の記録</h2>
-            <span className="panel-sub">{sortedRecords.length}件</span>
-          </div>
-
-          {sortedRecords.length === 0 ? (
-            <div className="empty-state">
-              <p>まだ記録がありません。</p>
-              <p>音楽アプリの共有メニューからHearloomを開いてください。</p>
-            </div>
-          ) : (
-            <List>
-              {sortedRecords.map((entry, index) => (
-                <ListItem
-                  key={entry.id}
-                  title={`#${String(index + 1).padStart(2, '0')}  ${entry.mood}`}
-                  description={entry.note}
-                >
-                  <div className="record-meta">
-                    <span>{formatDateLabel(entry.createdAt, entry.timeBucket)}</span>
-                    <Button size="small" styleType="ghost" onClick={() => handleEdit(entry)}>
-                      編集
-                    </Button>
-                  </div>
-                  <a
-                    className="record-url"
-                    href={entry.sharedUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {entry.sharedUrl}
-                  </a>
-                </ListItem>
-              ))}
-            </List>
-          )}
-        </section>
+        {view === 'timeline' && (
+          <TimelineScreen records={sortedRecords} onEdit={handleEdit} />
+        )}
       </main>
     </div>
   );
