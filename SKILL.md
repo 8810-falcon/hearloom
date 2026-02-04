@@ -31,6 +31,35 @@ Hearloom/
 
 ## 最新の重要な決定事項（過去7日間）
 
+### 2026-02-02: ハイブリッドアーキテクチャ採用
+
+**アーキテクチャ方針変更**: ネイティブ個別開発 → **ハイブリッドアーキテクチャ（ネイティブシェル + WebView UI）**
+
+**採用理由:**
+- 個人開発 × 両プラットフォーム対応 × 開発スピード最優先
+- WebViewアプリの開発経験あり、アーキテクチャへの理解が深い
+- SwiftUI/Jetpack Composeの実務経験（2年）、React経験あり
+- 将来的なWeb版展開も視野
+
+**技術スタック:**
+- **iOS**: Swift + SwiftUI + WKWebView
+- **Android**: Kotlin + Jetpack Compose + WebView
+- **Web UI**: React + TypeScript + Vite
+
+**責務分離:**
+- **ネイティブシェル**: WebViewホスティング、プラットフォーム固有機能（バックグラウンド、通知等）、ブリッジAPI提供
+- **Web UI**: アプリ内UI実装（聴取履歴、感情タグ編集、時系列ビュー等）、ブリッジAPI経由でネイティブ機能呼び出し
+
+**プロジェクト構造の追加:**
+- `/web/` ディレクトリ作成（React + TypeScript）
+- ブリッジAPI実装（`/web/src/bridge/`）
+
+**エージェント体制の変更:**
+- **新規追加**: web-ui-developerエージェント（Web UI実装担当）
+- **更新**: ui-ux-designer（React実装前提に変更）、mobile-tech-lead（WebViewハイブリッド専門性追加）
+
+詳細: [CLAUDE.md](CLAUDE.md)、[web/README.md](web/README.md)
+
 ### 2026-01-17: 技術検証フェーズ完了
 
 **採用技術スタック（暫定）:**
@@ -87,9 +116,13 @@ Hearloom/
 
 ## 実装知見（実装フェーズで追記）
 
-### iOS実装
+### Web UI実装
 
-#### プロジェクト固有パターン
+#### ブリッジAPI設計パターン
+
+※実装開始後に追記
+
+#### パフォーマンス最適化
 
 ※実装開始後に追記
 
@@ -97,9 +130,27 @@ Hearloom/
 
 ※実装開始後に追記
 
-### Android実装
+### iOS実装（ネイティブシェル）
 
-#### プロジェクト固有パターン
+#### WebView統合パターン
+
+※実装開始後に追記
+
+#### ブリッジAPI実装
+
+※実装開始後に追記
+
+#### トラブルシューティング
+
+※実装開始後に追記
+
+### Android実装（ネイティブシェル）
+
+#### WebView統合パターン
+
+※実装開始後に追記
+
+#### ブリッジAPI実装
 
 ※実装開始後に追記
 
@@ -111,6 +162,7 @@ Hearloom/
 
 ## 更新履歴
 
+- 2026-02-02: mobile-app-foundation-architect - ハイブリッドアーキテクチャ（ネイティブシェル + WebView UI）採用。CLAUDE.md、ui-ux-designer.md、mobile-tech-lead.md更新。web-ui-developerエージェント新規作成。/web/ディレクトリ構造作成（React + TypeScript）
 - 2026-01-17: SKILL.md構造改善 - ドキュメント分割によりインデックス化、最新決定事項のみを本ファイルに記録
 - 2026-01-17: mobile-tech-lead - 技術検証フェーズ完了。Spotify API/YouTube Data API/共有メニュー方式/ShazamKit、計5つのアプローチを検証。最終推奨：Spotify API（自動記録）+ 共有メニュー（手動記録）のハイブリッド方式
 - 2026-01-17: mobile-tech-lead - Apple Music API（MusicKit）技術調査完了。重大な制約を発見：タイムスタンプ（再生時刻）取得不可、バックグラウンド同期保証なし。コア機能「時間帯×ジャンル×頻度からAI推定」に直接的影響

@@ -109,22 +109,57 @@ AIエージェントとユーザーは、必ず日本語でやり取りを行う
 
 ## 技術スタック
 
+### アーキテクチャ方針
+- **ハイブリッドアーキテクチャ（ネイティブシェル + WebView UI）**
+- ネイティブ機能とUI層を分離し、開発効率とUX品質を両立
+- 各プラットフォームの強みを活かしつつ、UI実装を共通化
+
+### 責務分離
+
+#### ネイティブシェル（iOS: Swift + SwiftUI / Android: Kotlin + Jetpack Compose）
+- WebViewのホスティングとライフサイクル管理
+- プラットフォーム固有機能の実装
+  - iOS: バックグラウンドフェッチ、Share Extension、Push Notification
+  - Android: WorkManager、Share Intent、FCM
+- ネイティブ↔WebView間のブリッジAPI提供
+- データ永続化（ローカルDB、キャッシュ）
+
+#### Web UI（React + TypeScript）
+- アプリ内UIの実装（HTML/CSS/JavaScript）
+- 聴取履歴表示、感情タグ編集、時系列ビュー、設定画面など
+- ブリッジAPI経由でネイティブ機能を呼び出し
+- 状態管理とUIロジック
+
 ### プラットフォーム
-- **iOS/Android両対応（ネイティブ個別開発）**
-- デザインやロジックを共有しつつ、各プラットフォームに最適化
+- **iOS/Android両対応**
 - 最小サポートバージョン: TBD（企画時に決定）
+- Webデプロイ: 将来的にWeb版も展開可能
 
 ### 開発環境
 
-#### iOS
+#### iOS（ネイティブシェル）
 - 言語: Swift
 - IDE: Xcode
+- UIフレームワーク: SwiftUI
+- WebView: WKWebView
+- ブリッジ: WKScriptMessageHandler
 - プロジェクト構成: `/ios/` ディレクトリ配下
 
-#### Android
+#### Android（ネイティブシェル）
 - 言語: Kotlin
 - IDE: Android Studio
-- プロジェクト構成: `/android/` ディレクトリ配下（企画フェーズ後に作成予定）
+- UIフレームワーク: Jetpack Compose
+- WebView: Android WebView
+- ブリッジ: JavaScriptInterface
+- プロジェクト構成: `/android/` ディレクトリ配下
+
+#### Web UI
+- 言語: TypeScript
+- フレームワーク: React
+- ビルドツール: Vite
+- スタイリング: CSS Modules / Tailwind CSS（実装時に決定）
+- 状態管理: Context API / Zustand（実装時に決定）
+- プロジェクト構成: `/web/` ディレクトリ配下
 
 ### プロジェクト構造
 ```
@@ -132,27 +167,64 @@ Hearloom/                          # プロジェクトルート
 ├── .claude/                       # AI関連（エージェント設定）
 ├── CLAUDE.md                      # AI関連（プロジェクト情報）
 ├── SKILL.md                       # AI関連（開発知見）
-├── ios/                          # iOSプロジェクト
+├── docs/                          # ドキュメント
+├── ios/                          # iOSネイティブシェル
 │   ├── Hearloom.xcodeproj
 │   ├── Hearloom/
+│   │   ├── App/                  # アプリエントリーポイント
+│   │   ├── WebView/              # WebView統合層
+│   │   ├── Bridge/               # ネイティブ↔Web通信
+│   │   ├── Native/               # ネイティブ機能（API連携等）
+│   │   └── Resources/
 │   ├── HearloomTests/
 │   └── HearloomUITests/
-└── android/                       # Androidプロジェクト（後で作成）
-    └── README.md
+├── android/                       # Androidネイティブシェル
+│   ├── app/
+│   │   └── src/
+│   │       └── main/
+│   │           ├── java/com/hearloom/
+│   │           │   ├── app/      # アプリエントリーポイント
+│   │           │   ├── webview/  # WebView統合層
+│   │           │   ├── bridge/   # ネイティブ↔Web通信
+│   │           │   └── native/   # ネイティブ機能
+│   │           └── res/
+│   └── gradle/
+└── web/                          # Web UI（React）
+    ├── src/
+    │   ├── components/           # UIコンポーネント
+    │   ├── screens/              # 画面
+    │   ├── bridge/               # ブリッジAPI呼び出し
+    │   ├── hooks/                # カスタムフック
+    │   ├── stores/               # 状態管理
+    │   ├── styles/               # スタイル
+    │   └── utils/                # ユーティリティ
+    ├── public/                   # 静的ファイル
+    ├── package.json
+    ├── vite.config.ts
+    └── tsconfig.json
 ```
 
 ### フレームワーク・ライブラリ
-※実装フェーズで具体化予定
 
 #### iOS
-- UIフレームワーク: TBD（SwiftUI / UIKit / ハイブリッド）
+- WebView: WKWebView
+- ブリッジ: WKScriptMessageHandler
 - データ永続化: TBD（Core Data / Realm / UserDefaults）
-- アーキテクチャパターン: TBD（MVVM / MVI / Clean Architecture）
+- アーキテクチャパターン: MVVM
 
 #### Android
-- UIフレームワーク: TBD（Jetpack Compose / XML Views / ハイブリッド）
+- WebView: Android WebView
+- ブリッジ: JavaScriptInterface + @JavascriptInterface
 - データ永続化: TBD（Room / DataStore / SharedPreferences）
-- アーキテクチャパターン: TBD（MVVM / MVI / Clean Architecture）
+- アーキテクチャパターン: MVVM
+
+#### Web UI
+- フレームワーク: React 18+
+- 言語: TypeScript
+- ビルド: Vite
+- スタイリング: TBD（CSS Modules / Tailwind CSS / Emotion）
+- 状態管理: TBD（Context API / Zustand / Redux Toolkit）
+- ルーティング: React Router（必要に応じて）
 
 ## 開発フェーズ
 **現在: 企画フェーズ**
@@ -171,17 +243,28 @@ Hearloom/                          # プロジェクトルート
 
 ### デザインフェーズ
 - ui-ux-designerエージェントでデザインシステムを言語化
-- プラットフォーム共通デザインと、各プラットフォーム固有の配慮を明確化
-- iOS: SwiftUI Previewで直接実装しながらデザインを確認・調整
-- Android: Jetpack Compose Previewまたはレイアウトエディタで確認・調整
-- 実装したコンポーネントは必ずmobile-tech-leadにレビューしてもらう
+- **Web UI（React）前提**でコンポーネント設計を行う
+- ネイティブとWebViewの**責務分離**を明確化（どこまでネイティブ、どこからWeb UI）
+- デザインの実装可能性はweb-ui-developerとmobile-tech-leadの両方にレビュー依頼
 - デザインの意図と実装の詳細をSKILL.mdに記録
 
 ### 実装フェーズ
-- iOS/Android各プラットフォームのコーディング規約を実装開始時に確定
+
+#### Web UI実装
+- web-ui-developerエージェントが主担当
+- Reactコンポーネントの実装、ブリッジAPI呼び出し、状態管理
+- ブラウザでの動作確認後、ネイティブアプリに統合
 - 新規機能は必ずテストとセットで実装
+
+#### ネイティブシェル実装
+- mobile-tech-leadエージェントが主担当
+- WebViewホスティング、ブリッジAPI提供、プラットフォーム固有機能
+- iOS/Android各プラットフォームのコーディング規約を実装開始時に確定
 - プラットフォーム間で共通仕様を保ちつつ、各プラットフォームの強みを活用
-- 実装の際は、iOS/Android双方の観点から設計を検討
+
+#### 統合テスト
+- Web UI単体テスト、ネイティブ単体テスト、統合テストの3層でテスト
+- ブリッジAPIの動作確認は必須
 
 ## 品質基準
 ※実装フェーズで具体化予定
@@ -225,8 +308,9 @@ Hearloom/                          # プロジェクトルート
 ## エージェント選択のポイント
 
 - **product-planning-partner**: コンセプトのブレインストーミング、MVP定義、機能優先順位付け
-- **ui-ux-designer**: デザインシステム策定、画面設計、アクセシビリティ検討
-- **mobile-tech-lead**: コードレビュー、技術選択アドバイス、複雑な機能実装、デザイン実装可能性評価
+- **ui-ux-designer**: デザインシステム策定、画面設計、アクセシビリティ検討、ネイティブ/Web UI責務分離
+- **web-ui-developer**: Web UI（React）実装、ブリッジAPI統合、Webパフォーマンス最適化
+- **mobile-tech-lead**: ネイティブシェル実装、ブリッジAPI設計、プラットフォーム固有機能、複雑な統合
 - **mobile-app-foundation-architect**: プロジェクト基盤改善、開発ワークフロー最適化、プロセス課題解決
 - **claude-code-guide**: Claude Code公式ベストプラクティスの照会、CLAUDE.md/エージェント設定の最適化相談
 - **メインのClaude Code**: ファイル操作、単純な修正、Git操作、情報整理
