@@ -1,29 +1,256 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Space+Grotesk:wght@400;500;600&display=swap');
+
 .app {
   min-height: 100vh;
+  color: #1b1b1b;
+  background:
+    radial-gradient(circle at top left, rgba(252, 225, 192, 0.7), transparent 45%),
+    radial-gradient(circle at 20% 40%, rgba(198, 225, 255, 0.55), transparent 50%),
+    linear-gradient(135deg, #f7f2ea, #f0f4f8 55%, #f4efe9);
   display: flex;
   flex-direction: column;
 }
 
 .app-header {
-  background-color: #282c34;
-  padding: 2rem;
-  color: white;
-  text-align: center;
+  padding: 2.5rem 6vw 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.brand-mark {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #1b1b1b;
+  color: #f7f2ea;
+  display: grid;
+  place-items: center;
+  font-family: 'Fraunces', serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
 }
 
 .app-header h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 2rem;
   margin: 0;
-  font-size: 2.5rem;
 }
 
 .app-header p {
-  margin: 0.5rem 0 0;
-  font-size: 1.2rem;
-  opacity: 0.8;
+  margin: 0.25rem 0 0;
+  font-size: 1rem;
+  color: #3d3d3d;
+}
+
+.header-note {
+  font-size: 0.9rem;
+  color: #5c5c5c;
 }
 
 .app-main {
   flex: 1;
-  padding: 2rem;
-  text-align: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  padding: 0 6vw 3rem;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 14px 30px rgba(16, 24, 40, 0.08);
+  border: 1px solid rgba(27, 27, 27, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.panel h2 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.2rem;
+  margin: 0 0 1.25rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.95rem;
+}
+
+.field span {
+  color: #2a2a2a;
+  font-weight: 500;
+}
+
+.field input,
+.field textarea {
+  border: 1px solid rgba(27, 27, 27, 0.15);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.mood-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mood-chip {
+  border: 1px solid rgba(27, 27, 27, 0.2);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mood-chip.active {
+  background: #1b1b1b;
+  color: #f7f2ea;
+  border-color: #1b1b1b;
+}
+
+.form-error {
+  color: #b02a2a;
+  background: rgba(176, 42, 42, 0.08);
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+button {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+button.primary {
+  background: #1b1b1b;
+  color: #f7f2ea;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+button.ghost {
+  background: transparent;
+  border: 1px solid rgba(27, 27, 27, 0.2);
+  padding: 0.75rem 1.2rem;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.count {
+  font-size: 0.85rem;
+  color: #5c5c5c;
+}
+
+.record-list {
+  list-style: none;
+  display: grid;
+  gap: 1rem;
+}
+
+.record-card {
+  border-radius: 16px;
+  border: 1px solid rgba(27, 27, 27, 0.08);
+  padding: 1rem;
+  background: #fff;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.record-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #5c5c5c;
+}
+
+.record-body {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.record-mood {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.record-note {
+  color: #2f2f2f;
+  line-height: 1.5;
+}
+
+.record-url {
+  color: #1b1b1b;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: #1b1b1b;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.85rem;
+}
+
+.empty-state {
+  background: rgba(27, 27, 27, 0.04);
+  padding: 1.5rem;
+  border-radius: 14px;
+  color: #555;
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 960px) {
+  .app-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    padding: 2rem 5vw 1rem;
+  }
+
+  .app-main {
+    padding: 0 5vw 2.5rem;
+  }
 }
