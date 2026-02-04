@@ -1,4 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Badge,
+  Button,
+  List,
+  ListItem,
+  RadioButton,
+  RadioGroup,
+  TextArea,
+  TextField,
+} from '@serendie/ui';
 import './App.css';
 
 type TimeBucket = '朝' | '昼' | '夕' | '夜';
@@ -11,6 +21,8 @@ type RecordEntry = {
   createdAt: string; // ISO
   timeBucket: TimeBucket;
 };
+
+type ErrorField = '' | 'sharedUrl' | 'mood' | 'note';
 
 const MOOD_OPTIONS = [
   '嬉しい',
@@ -83,7 +95,8 @@ function App() {
   const [mood, setMood] = useState('');
   const [note, setNote] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  const [errorField, setErrorField] = useState<ErrorField>('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     const initial = loadRecords();
@@ -101,20 +114,24 @@ function App() {
     setMood('');
     setNote('');
     setEditingId(null);
-    setError('');
+    setErrorField('');
+    setErrorMessage('');
   };
 
   const handleSave = () => {
     if (!sharedUrl.trim()) {
-      setError('共有URLが必要です。音楽アプリから共有してください。');
+      setErrorField('sharedUrl');
+      setErrorMessage('共有URLが必要です。音楽アプリから共有してください。');
       return;
     }
     if (!mood.trim()) {
-      setError('気分を選択してください。');
+      setErrorField('mood');
+      setErrorMessage('気分を選択してください。');
       return;
     }
     if (!note.trim()) {
-      setError('状況を一言入力してください。');
+      setErrorField('note');
+      setErrorMessage('状況を一言入力してください。');
       return;
     }
 
@@ -154,85 +171,99 @@ function App() {
     setSharedUrl(entry.sharedUrl);
     setMood(entry.mood);
     setNote(entry.note);
-    setError('');
+    setErrorField('');
+    setErrorMessage('');
   };
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <div className="brand">
-          <span className="brand-mark">H</span>
-          <div>
-            <h1>Hearloom</h1>
-            <p>音楽と感情・状況を紐づける記録</p>
-          </div>
+    <div className="app-shell">
+      <header className="hero">
+        <div className="hero-head">
+          <span className="hero-eyebrow">Playlist Mode</span>
+          <h1>Hearloom</h1>
+          <p>音楽と感情・状況を紐づける記録</p>
         </div>
-        <div className="header-note">
-          共有メニューから来たURLをそのまま記録します
+        <div className="hero-stats">
+          <Badge>Share MVP</Badge>
+          <Badge>{sortedRecords.length} Records</Badge>
         </div>
       </header>
 
-      <main className="app-main">
-        <section className="panel form-panel">
-          <h2>{editingId ? '記録を編集' : '新しい記録'}</h2>
-          <label className="field">
-            <span>共有URL</span>
-            <input
-              type="text"
+      <main className="content">
+        <section className="panel">
+          <div className="panel-header">
+            <h2>{editingId ? '記録を編集' : '新しい記録'}</h2>
+            <span className="panel-sub">共有メニューからのURLを貼り付け</span>
+          </div>
+
+          <div className="stack">
+            <TextField
+              label="共有URL"
+              placeholder="共有されたURLが自動反映されます"
+              description="音楽アプリの共有メニューから開くと自動入力されます"
+              required
               value={sharedUrl}
               onChange={(event) => setSharedUrl(event.target.value)}
-              placeholder="共有されたURLが自動反映されます"
+              invalid={errorField === 'sharedUrl'}
+              invalidMessage={
+                errorField === 'sharedUrl' ? errorMessage : undefined
+              }
             />
-          </label>
 
-          <label className="field">
-            <span>気分</span>
-            <div className="mood-grid">
-              {MOOD_OPTIONS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  className={
-                    option === mood ? 'mood-chip active' : 'mood-chip'
+            <div className="field-block">
+              <div className="field-title">
+                <span>気分</span>
+                <span className="field-required">必須</span>
+              </div>
+              <RadioGroup
+                value={mood}
+                onValueChange={(details) => {
+                  setMood(details.value ?? '');
+                  if (errorField === 'mood') {
+                    setErrorField('');
+                    setErrorMessage('');
                   }
-                  onClick={() => setMood(option)}
-                >
-                  {option}
-                </button>
-              ))}
+                }}
+                orientation="horizontal"
+                invalid={errorField === 'mood'}
+              >
+                <div className="mood-grid">
+                  {MOOD_OPTIONS.map((option) => (
+                    <RadioButton key={option} value={option} label={option} />
+                  ))}
+                </div>
+              </RadioGroup>
+              {errorField === 'mood' && (
+                <p className="field-error">{errorMessage}</p>
+              )}
             </div>
-          </label>
 
-          <label className="field">
-            <span>状況（必須）</span>
-            <textarea
-              rows={3}
+            <TextArea
+              label="状況（必須）"
+              placeholder="例: 通勤中に聴いて集中できた"
+              autoAdjustHeight
+              required
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="例: 通勤中に聴いて集中できた"
+              invalid={errorField === 'note'}
+              invalidMessage={errorField === 'note' ? errorMessage : undefined}
             />
-          </label>
+          </div>
 
-          {error && <p className="form-error">{error}</p>}
-
-          <div className="form-actions">
-            <button className="primary" type="button" onClick={handleSave}>
+          <div className="actions">
+            <Button size="medium" styleType="filled" onClick={handleSave}>
               {editingId ? '更新する' : '保存する'}
-            </button>
-            <button
-              className="ghost"
-              type="button"
-              onClick={resetForm}
-            >
+            </Button>
+            <Button size="medium" styleType="outlined" onClick={resetForm}>
               クリア
-            </button>
+            </Button>
           </div>
         </section>
 
-        <section className="panel list-panel">
-          <div className="list-header">
+        <section className="panel">
+          <div className="panel-header">
             <h2>最近の記録</h2>
-            <span className="count">{sortedRecords.length}件</span>
+            <span className="panel-sub">{sortedRecords.length}件</span>
           </div>
 
           {sortedRecords.length === 0 ? (
@@ -241,36 +272,30 @@ function App() {
               <p>音楽アプリの共有メニューからHearloomを開いてください。</p>
             </div>
           ) : (
-            <ul className="record-list">
-              {sortedRecords.map((entry) => (
-                <li key={entry.id} className="record-card">
+            <List>
+              {sortedRecords.map((entry, index) => (
+                <ListItem
+                  key={entry.id}
+                  title={`#${String(index + 1).padStart(2, '0')}  ${entry.mood}`}
+                  description={entry.note}
+                >
                   <div className="record-meta">
-                    <span className="record-date">
-                      {formatDateLabel(entry.createdAt, entry.timeBucket)}
-                    </span>
-                    <button
-                      type="button"
-                      className="link-button"
-                      onClick={() => handleEdit(entry)}
-                    >
+                    <span>{formatDateLabel(entry.createdAt, entry.timeBucket)}</span>
+                    <Button size="small" styleType="ghost" onClick={() => handleEdit(entry)}>
                       編集
-                    </button>
+                    </Button>
                   </div>
-                  <div className="record-body">
-                    <div className="record-mood">{entry.mood}</div>
-                    <p className="record-note">{entry.note}</p>
-                    <a
-                      className="record-url"
-                      href={entry.sharedUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {entry.sharedUrl}
-                    </a>
-                  </div>
-                </li>
+                  <a
+                    className="record-url"
+                    href={entry.sharedUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {entry.sharedUrl}
+                  </a>
+                </ListItem>
               ))}
-            </ul>
+            </List>
           )}
         </section>
       </main>

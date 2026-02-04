@@ -1,40 +1,40 @@
-:root {
-  font-family: 'Space Grotesk', sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #1b1b1b;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer reset, base, tokens, recipes, utilities;
+@import "@serendie/ui/styles.css";
 
-  /* WebView最適化 */
-  -webkit-overflow-scrolling: touch;
-  -webkit-tap-highlight-color: transparent;
-}
+@layer base {
+  :root {
+    font-family: var(--sds-sys-typography-font-family, "Noto Sans JP", sans-serif);
+    color: var(--sds-sys-color-on-background, #1b1b1b);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+    /* WebView最適化 */
+    -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-}
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-#root {
-  width: 100%;
-}
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    background: var(--sds-sys-color-background, #f6f6f4);
+  }
 
-/* タッチ遅延対策 */
-a, button, input, select, textarea {
-  touch-action: manipulation;
-}
+  #root {
+    width: 100%;
+  }
 
-/* スクロール最適化 */
-* {
-  overscroll-behavior: none;
+  a, button, input, select, textarea {
+    touch-action: manipulation;
+  }
+
+  * {
+    overscroll-behavior: none;
+  }
 }
