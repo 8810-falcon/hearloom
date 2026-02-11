@@ -31,6 +31,210 @@ Hearloom/
 
 ## 最新の重要な決定事項（過去7日間）
 
+### 2026-02-11: 記録導線の確定
+
+**3つの記録導線**:
+
+| 導線 | 起点 | 曲情報の取得方法 |
+|------|------|-----------------|
+| 1. ウィジェット | ウィジェットタップ | SpotifySDK / MusicKitで今再生中の曲を自動取得 |
+| 2. 共有メニュー | Spotify/Apple Musicアプリで共有→Hearloom選択 | URLから曲情報を自動取得 |
+| 3. アプリ内+ボタン | 履歴画面の+ボタン | URL入力→自動反映 **or** 完全手動入力 |
+
+**画面構成**:
+
+```
+┌─────────────────────────────────────────┐
+│           ListScreen（起動時）           │
+│  ┌─────────────────────────────────┐   │
+│  │ 履歴一覧                        │   │
+│  │ [RecordCard]                    │   │
+│  │ [RecordCard]                    │   │
+│  └─────────────────────────────────┘   │
+│                                  [+]   │ ← +ボタン
+└─────────────────────────────────────────┘
+        │               │               │
+        │ ウィジェット   │ 共有メニュー   │ +ボタン
+        ▼               ▼               ▼
+┌─────────────────────────────────────────┐
+│              RecordScreen               │
+│  ┌─────────────────────────────────┐   │
+│  │ 曲情報入力エリア                 │   │
+│  │ ・ウィジェット: プリセット済み   │   │
+│  │ ・共有: URLから自動取得済み      │   │
+│  │ ・+ボタン: URL入力 or 手動入力  │   │
+│  └─────────────────────────────────┘   │
+│  ┌─────────────────────────────────┐   │
+│  │ 気分選択（必須）                 │   │
+│  └─────────────────────────────────┘   │
+│  ┌─────────────────────────────────┐   │
+│  │ 一言メモ（任意）                 │   │
+│  └─────────────────────────────────┘   │
+│                [記録する]              │
+└─────────────────────────────────────────┘
+```
+
+**RecordScreenの入口別初期状態**:
+
+| 入口 | 曲情報エリアの初期状態 |
+|------|----------------------|
+| ウィジェット経由 | SongInfoCard表示（曲情報プリセット） |
+| 共有メニュー経由 | SongInfoCard表示（URLから取得済み） |
+| +ボタン経由 | URL入力フィールド + 手動入力切り替えタブ |
+
+**次のステップ**:
+1. RecordScreenに「入口モード」を追加（preset / url / manual）
+2. URL入力 → 曲情報取得のロジック実装
+3. 手動入力フォーム実装
+4. Share Extension → RecordScreen連携
+
+---
+
+### 2026-02-11: iOS フルネイティブ実装完了（Phase 1）
+
+**実装内容**: WebViewハイブリッドからフルネイティブ（SwiftUI）への移行を完了
+
+**作成ファイル一覧**:
+
+```
+ios/Hearloom/
+├── HearloomApp.swift (更新)
+├── MainView.swift (更新)
+├── DesignSystem/
+│   ├── Colors/
+│   │   ├── HearloomColors.swift     # カラーシステム（背景階層、アクセント、セマンティック）
+│   │   └── MoodColors.swift         # 気分カラー6種（色、背景、グロウ、ボーダー）
+│   ├── Typography/
+│   │   └── HearloomFonts.swift      # タイポグラフィ（SF Pro使用）
+│   ├── Spacing/
+│   │   └── HearloomSpacing.swift    # スペーシング（4ptベース）+ Border Radius
+│   └── Effects/
+│       └── GlowEffect.swift         # グロウViewModifier（Mood対応、Primary、Pulsing）
+├── Components/
+│   ├── Navigation/
+│   │   └── HearloomHeader.swift     # Liquid Glass効果のヘッダー
+│   ├── Buttons/
+│   │   ├── HearloomButton.swift     # 汎用ボタン（primary/secondary/ghost/danger）
+│   │   ├── MoodButton.swift         # 気分選択ボタン + MoodSelector
+│   │   └── FloatingActionButton.swift # Liquid Glass FAB
+│   ├── Cards/
+│   │   ├── RecordCard.swift         # 記録一覧カード
+│   │   └── SongInfoCard.swift       # 曲情報カード + AlbumArtView
+│   ├── Inputs/
+│   │   └── HearloomTextField.swift  # テキスト入力（文字数カウンター付き）
+│   └── Badges/
+│       ├── MoodBadge.swift          # 気分バッジ（コンパクト表示）
+│       └── ServiceBadge.swift       # 音楽サービスバッジ（Apple Music/Spotify）
+├── Screens/
+│   ├── RecordScreen/
+│   │   └── RecordScreen.swift       # 記録作成画面
+│   ├── ListScreen/
+│   │   └── ListScreen.swift         # 記録一覧画面（フィルター機能付き）
+│   └── EditScreen/
+│       └── EditScreen.swift         # 記録編集・削除画面
+└── Core/
+    ├── Models/
+    │   ├── Song.swift               # 曲情報モデル + MusicSource
+    │   └── MusicRecord.swift        # 記録データモデル + Location
+    ├── Protocols/
+    │   ├── MusicServiceProtocol.swift     # 音楽サービス連携プロトコル
+    │   └── RecordRepositoryProtocol.swift # 記録リポジトリプロトコル + RecordFilter
+    └── Mocks/
+        ├── MockRecordRepository.swift     # プレビュー用モックリポジトリ
+        └── MockMusicService.swift         # プレビュー用モック音楽サービス
+```
+
+**削除ファイル**:
+- `ios/Hearloom/WebView/` ディレクトリ全体
+- `ios/Hearloom/Bridge/` ディレクトリ全体
+
+**デザインシステム**: Midnight Groove + Liquid Glass ハイブリッド
+- ダークモード専用
+- 6つの気分カラーシステム（excited/calm/melancholy/focused/nostalgic/other）
+- 深い背景階層（#0D0D0F → #1A1A1F）
+- グロウ効果による選択状態表現
+- Liquid Glass: ナビゲーション/FAB/モーダルに適用
+- ソリッド背景: コンテンツ（カード、ボタン）に適用
+
+**ビルド状態**: ✅ ビルド成功（iOS 26.0 Simulator）
+
+**次のステップ（Phase 2）**:
+1. 実際のApple Music連携（MusicKit / SystemMusicPlayer）
+2. Spotify SDK連携（SPTAppRemote）
+3. Core Data または SwiftData でのデータ永続化
+4. オンデバイスAI（Apple Intelligence）でのエピソード生成
+5. Share Extension からの記録作成フロー
+
+---
+
+### 2026-02-11: フルネイティブアーキテクチャ設計確定
+
+**決定**: WebViewハイブリッドからフルネイティブ（iOS: SwiftUI / Android: Kotlin + Compose）へ移行
+
+**移行理由**:
+- 3画面程度ならWebViewのオーバーヘッドに見合わない
+- MusicKit、Spotify SDK、Apple Intelligence連携が多く、直接呼び出しが効率的
+- iOS 26限定で最新SwiftUI機能をフル活用可能
+
+**デバッグ容易性の確保**:
+- **Protocol抽象化**: `MusicServiceProtocol`, `EpisodeGeneratorProtocol`, `RecordRepositoryProtocol`
+- **DIコンテナ**: 環境（production/development/preview）で実装を切り替え
+- **モック実装**: 遅延シミュレーション、エラー注入が可能
+- **SwiftUI Preview**: 各状態（正常、エラー、ローディング等）のプレビュー
+
+**共通仕様ドキュメント構造**:
+```
+docs/specs/
+├── data-models.md    # データモデル定義（Swift/Kotlin両方）
+├── protocols.md      # Protocol/Interface仕様
+├── error-codes.md    # エラーコード定義
+└── integration-test-plan.md  # 統合テストプラン
+```
+
+**テスト戦略**:
+| 種類 | iOS | Android |
+|------|-----|---------|
+| ユニットテスト | XCTest | JUnit + Truth |
+| UIテスト | SnapshotTesting | Compose Screenshot Tests |
+| 統合テスト | チェックリスト形式 | チェックリスト形式 |
+
+**開発順序**:
+- **初期リリース**: iOS / Android 両方
+- **開発アプローチ**: iOS先行開発 → Androidに適用
+  - iOSで設計・実装パターンを確立
+  - 共通仕様ドキュメントをiOS実装と並行して整備
+  - AndroidはiOSの設計をベースに実装
+
+**次のステップ（iOS先行）**:
+1. iOSプロジェクト構造再構築（WebView関連削除）
+2. Protocol定義実装（MusicService, EpisodeGenerator, RecordRepository）
+3. モック実装整備 + SwiftUI Preview活用
+4. 画面実装（RecordScreen → ListScreen → EditScreen）
+5. 実装完了後、共通仕様ドキュメントを `/docs/specs/` に整理
+6. Androidプロジェクト構築（iOS設計をベースに）
+
+**ステータス**: 設計確定、iOS実装開始準備中
+
+---
+
+### 2026-02-11: Web UI実装完了（新コンセプト対応）
+
+**実装内容**:
+- Bridge API型定義・モック実装完了
+- RecordScreen: 新フロー対応（曲取得→気分選択→エピソード生成→記録）
+- EditScreen: MusicRecord型対応
+- ListScreen: MusicRecord型対応
+- SongInfoCard: Song型表示（URL形式廃止）
+- RecordCard: アルバムアート+曲情報表示
+- useRecordsフック: Bridge API経由に変更（LocalStorage廃止）
+
+**削除したファイル**:
+- `stores/recordStore.ts` - LocalStorage操作は不要に
+
+**iOS対応バージョン**: 26.0に更新
+
+---
+
 ### 2026-02-11: 新コンセプト確定
 
 **背景**: 旧コンセプト「自動収集 → AI推定 → セレンディピティ通知」は技術的制約（タイムスタンプ取得不可、バックグラウンド同期不可）により実現困難。また「記録先行」だとユーザーは見返りがないまま記録を続けなければならない課題があった。
@@ -209,19 +413,103 @@ Hearloom/
 
 ※実装開始後に追記
 
-### iOS実装（ネイティブシェル）
+### iOS実装（フルネイティブ SwiftUI）
 
-#### WebView統合パターン
+#### Design System 実装パターン
 
-※実装開始後に追記
+**カラー定義（Hex対応）**:
+```swift
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        // RGB (24-bit) 対応
+        let (r, g, b) = (int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        self.init(.sRGB, red: Double(r) / 255, green: Double(g) / 255, blue: Double(b) / 255)
+    }
+}
+```
 
-#### ブリッジAPI実装
+**グロウエフェクト ViewModifier**:
+```swift
+struct MoodGlowModifier: ViewModifier {
+    let mood: MoodType
+    let isActive: Bool
 
-※実装開始後に追記
+    func body(content: Content) -> some View {
+        content
+            .shadow(color: isActive ? MoodColors.glowColor(for: mood) : .clear, radius: 10)
+            .shadow(color: isActive ? MoodColors.glowColor(for: mood).opacity(0.5) : .clear, radius: 20)
+            .animation(.easeInOut(duration: 0.2), value: isActive)
+    }
+}
+
+extension View {
+    func moodGlow(_ mood: MoodType, isActive: Bool = true) -> some View {
+        modifier(MoodGlowModifier(mood: mood, isActive: isActive))
+    }
+}
+```
+
+#### コンポーネント設計パターン
+
+**ボタンスタイル分離**:
+```swift
+// Button内でスタイルを直接定義せず、ButtonStyleで分離
+struct MoodButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+```
+
+**Liquid Glass効果**:
+```swift
+// iOS 26+ でultraThinMaterialを使用
+.background(.ultraThinMaterial)
+.background(HearloomColors.bgBase.opacity(0.5))
+```
+
+#### Protocol + Mock パターン
+
+**依存性注入の準備**:
+```swift
+protocol MusicServiceProtocol {
+    var source: MusicSource { get }
+    func getAuthStatus() async -> AuthStatus
+    func getCurrentSong() async -> Song?
+}
+
+// Previewで使用
+final class MockMusicService: MusicServiceProtocol {
+    var mockCurrentSong: Song? = .preview
+    func getCurrentSong() async -> Song? { mockCurrentSong }
+}
+```
+
+#### Xcode プロジェクト設定
+
+**PBXFileSystemSynchronizedRootGroup**:
+- Xcode 15+の新機能でフォルダ内ファイルが自動同期
+- ファイル追加時にpbxproj編集不要
+- ディレクトリ構造変更が即座に反映
+
+**ビルドターゲット**: iOS 26.0（最小サポートバージョン）
 
 #### トラブルシューティング
 
-※実装開始後に追記
+**SourceKit エラー "Cannot find X in scope"**:
+- 同一モジュール内のSwiftファイルは自動参照される
+- SourceKitのインデックス更新が遅れることがある
+- 実際のビルドでは問題なし（xcodebuildで確認）
+
+**解決策**: クリーンビルド実行
+```bash
+xcodebuild -project Hearloom.xcodeproj -scheme Hearloom clean build
+```
 
 ### Android実装（ネイティブシェル）
 
@@ -241,6 +529,12 @@ Hearloom/
 
 ## 更新履歴
 
+- 2026-02-11: メインのClaude Code - **記録導線の確定**。3つの導線（ウィジェット/共有メニュー/アプリ内+ボタン）と画面構成を決定。RecordScreenの入口別初期状態を定義
+- 2026-02-11: メインのClaude Code - **iOS フルネイティブ実装完了（Phase 1）**。WebViewハイブリッドからSwiftUIへの移行実施。Design System（Midnight Groove + Liquid Glass）、コンポーネント（ヘッダー、ボタン、カード、バッジ、入力等）、画面（ListScreen/RecordScreen/EditScreen）、Core層（Models/Protocols/Mocks）を実装。ビルド成功確認済み
+- 2026-02-11: メインのClaude Code - 開発順序確定。iOS先行開発→Androidに適用のアプローチを採用
+- 2026-02-11: メインのClaude Code + mobile-tech-lead - フルネイティブアーキテクチャ設計確定。Protocol抽象化（MusicService/EpisodeGenerator/RecordRepository）、DIコンテナ、モック実装、テスト戦略を設計
+- 2026-02-11: メインのClaude Code - Web UI実装完了（新コンセプト対応）。RecordScreen/EditScreen/ListScreen/SongInfoCard/RecordCardを新Bridge API（MusicRecord型）に対応。LocalStorage廃止、recordStore.ts削除。iOS対応バージョンを26.0に更新
+- 2026-02-11: メインのClaude Code - アーキテクチャ方針検討開始。WebViewハイブリッドからフルネイティブ（SwiftUI/Compose）への移行を検討
 - 2026-02-11: メインのClaude Code + mobile-tech-lead + web-ui-developer - アーキテクチャ設計確定。責務分割（Native=Native専用機能+データ永続化、Web=UI+状態管理）、ブリッジAPI設計、データフローを文書化
 - 2026-02-11: メインのClaude Code - エピソード生成をオンデバイスAI（Apple Intelligence / Gemini Nano）に変更。コスト0円、バックエンド不要。古いデバイスでも記録機能は利用可能（エピソードのみ非対応）
 - 2026-02-11: メインのClaude Code + mobile-tech-lead - 新コンセプト確定＆技術スタック決定。Apple Music（SystemMusicPlayer）+ Spotify SDK連携方式を採用

@@ -9,6 +9,7 @@
 import Foundation
 import Combine
 
+@MainActor
 final class SharedUrlManager: ObservableObject {
     static let shared = SharedUrlManager()
 
@@ -26,7 +27,7 @@ final class SharedUrlManager: ObservableObject {
 
     private let userDefaults: UserDefaults?
 
-    enum LaunchMode {
+    enum LaunchMode: Sendable {
         case normal      // 通常起動（一覧画面を表示）
         case share       // Share Extensionからの起動（記録画面を表示）
     }

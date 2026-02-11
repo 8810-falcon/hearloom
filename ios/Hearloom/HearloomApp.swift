@@ -2,8 +2,8 @@
 //  HearloomApp.swift
 //  Hearloom
 //
-//  ネイティブシェルのエントリーポイント
-//  WebView UIをホスティングし、Share Extensionからの共有URLを処理する
+//  フルネイティブアプリのエントリーポイント
+//  Share Extensionからの共有URLを処理
 //
 
 import SwiftUI
@@ -17,7 +17,6 @@ struct HearloomApp: App {
             MainView()
                 .environmentObject(sharedUrlManager)
                 .onOpenURL { url in
-                    // ディープリンクからの共有URLを処理
                     handleIncomingUrl(url)
                 }
         }
