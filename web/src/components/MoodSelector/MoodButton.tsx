@@ -2,8 +2,8 @@
  * 気分選択ボタンコンポーネント
  *
  * docs/design/screens.md の気分選択の設計に準拠:
- * - 未選択状態: 透明背景、グレー枠線
- * - 選択状態: 各気分の背景色、太枠線
+ * - 未選択状態: ダーク背景、微細な枠線
+ * - 選択状態: 各気分のグロウ効果
  * - タッチフィードバック: タップ時に軽いスケールアニメーション（0.95倍）
  */
 
@@ -25,18 +25,13 @@ export const MoodButton: React.FC<MoodButtonProps> = ({
   isSelected,
   onClick,
 }) => {
-  const buttonStyle = isSelected
-    ? {
-        backgroundColor: mood.color,
-        borderColor: mood.color,
-      }
-    : undefined;
+  // mood.idに基づいてCSSクラスを取得
+  const moodClass = styles[mood.id] || '';
 
   return (
     <button
       type="button"
-      className={`${styles.button} ${isSelected ? styles.selected : ''}`}
-      style={buttonStyle}
+      className={`${styles.button} ${isSelected ? `${styles.selected} ${moodClass}` : ''}`}
       onClick={onClick}
       role="radio"
       aria-checked={isSelected}

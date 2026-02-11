@@ -3,21 +3,32 @@
  *
  * ネイティブ（iOS/Android）の機能をWeb UIから呼び出すためのラッパーです。
  * プラットフォームを自動判定し、適切なブリッジAPIを使用します。
+ *
+ * @see docs/tech/architecture.md
  */
 
 import type {
-  NativeBridge,
   HearloomBridge,
-  Track,
-  ListeningHistoryEntry,
-  EmotionTag,
-  NotificationParams,
+  DeviceCapabilities,
+  AuthStatus,
+  Song,
+  EpisodeResult,
+  Location,
+  MusicRecord,
+  MusicRecordInput,
+  MusicRecordUpdate,
+  MusicRecordFilter,
+  BridgeResult,
 } from './types';
 import { BridgeError } from './types';
 
-/**
- * プラットフォーム判定
- */
+// ===== 定数 =====
+
+/** ブリッジAPI呼び出しのタイムアウト（ミリ秒） */
+const BRIDGE_TIMEOUT_MS = 5000;
+
+// ===== プラットフォーム判定 =====
+
 const isIOS = (): boolean => {
   return /iPhone|iPad|iPod/.test(navigator.userAgent);
 };
@@ -25,6 +36,12 @@ const isIOS = (): boolean => {
 const isAndroid = (): boolean => {
   return /Android/.test(navigator.userAgent);
 };
+
+const isNative = (): boolean => {
+  return isIOS() || isAndroid();
+};
+
+// ===== ブリッジ呼び出し =====
 
 /**
  * iOS用ブリッジAPI呼び出し
@@ -51,7 +68,7 @@ const callIOSBridge = async <T>(
       timeout: setTimeout(() => {
         delete (window as any).__bridgeCallbacks[callbackId];
         reject(new BridgeError('Bridge call timeout', 'TIMEOUT'));
-      }, 30000), // 30秒タイムアウト
+      }, BRIDGE_TIMEOUT_MS),
     };
 
     // ネイティブに送信
@@ -100,9 +117,10 @@ const callNative = async <T>(method: string, params?: unknown): Promise<T> => {
   } else if (isAndroid()) {
     return callAndroidBridge<T>(method, params);
   } else {
-    // ブラウザでの開発時はモックデータを返す
-    console.warn(`Bridge call (${method}) in browser - returning mock data`);
-    return Promise.resolve({} as T);
+    throw new BridgeError(
+      'Native bridge not available in browser',
+      'BRIDGE_NOT_AVAILABLE'
+    );
   }
 };
 
@@ -131,122 +149,258 @@ const callNative = async <T>(method: string, params?: unknown): Promise<T> => {
   }
 };
 
-/**
- * ネイティブブリッジAPI実装
- */
-export const nativeBridge: NativeBridge = {
-  fetchRecentlyPlayed: (limit = 50) => {
-    return callNative<Track[]>('fetchRecentlyPlayed', { limit });
-  },
+// ===== モックデータ（ブラウザ開発用） =====
 
-  fetchListeningHistory: (startDate: string, endDate: string) => {
-    return callNative<ListeningHistoryEntry[]>('fetchListeningHistory', {
-      startDate,
-      endDate,
-    });
-  },
-
-  updateEmotionTags: (trackId: string, emotionTags: EmotionTag[]) => {
-    return callNative<void>('updateEmotionTags', { trackId, emotionTags });
-  },
-
-  saveMemo: (trackId: string, memo: string) => {
-    return callNative<void>('saveMemo', { trackId, memo });
-  },
-
-  scheduleNotification: (params: NotificationParams) => {
-    return callNative<void>('scheduleNotification', params);
-  },
-
-  saveData: (key: string, value: unknown) => {
-    return callNative<void>('saveData', { key, value });
-  },
-
-  getData: (key: string) => {
-    return callNative<unknown>('getData', { key });
-  },
-
-  deleteData: (key: string) => {
-    return callNative<void>('deleteData', { key });
-  },
-
-  openInSpotify: (trackId: string) => {
-    return callNative<void>('openInSpotify', { trackId });
-  },
-
-  shareTrack: (trackId: string) => {
-    return callNative<void>('shareTrack', { trackId });
-  },
+const mockSong: Song = {
+  id: 'mock-song-001',
+  title: 'Pretender',
+  artist: 'Official髭男dism',
+  albumName: 'Traveler',
+  albumArtUrl: 'https://via.placeholder.com/300x300?text=Album+Art',
+  source: 'apple_music',
 };
 
-/**
- * Hearloom MVP用ブリッジAPI実装
- *
- * docs/design/screens.md のブリッジAPI仕様に準拠
- */
-export const hearloomBridge: HearloomBridge = {
-  getSharedUrl: async () => {
-    // ブラウザ開発時はクエリパラメータから取得
-    if (!isIOS() && !isAndroid()) {
-      const params = new URLSearchParams(window.location.search);
-      const url = params.get('url');
-      if (url) {
-        console.log('Got shared URL from query params:', url);
-        return url;
-      }
-      // 開発用のデフォルトURL
-      console.warn('No shared URL found, using mock URL for development');
-      return 'https://spotify.link/mock-track-id';
-    }
-
-    // iOS: コールバック方式
-    if (isIOS()) {
-      return callIOSBridge<string | null>('getSharedUrl');
-    }
-
-    // Android: 直接呼び出し（同期）
-    if (isAndroid()) {
-      try {
-        const result = (window as any).HearloomBridge.getSharedUrl();
-        const data = JSON.parse(result);
-        return data.url || null;
-      } catch (error) {
-        console.error('Android getSharedUrl error:', error);
-        return null;
-      }
-    }
-
-    return null;
+const mockRecords: MusicRecord[] = [
+  {
+    id: 'mock-record-001',
+    song: mockSong,
+    mood: 'melancholy',
+    situation: '帰り道、ふと聴きたくなった',
+    episode: 'この曲は2019年にリリースされ、映画「コンフィデンスマンJP」の主題歌として大ヒット。実は最初ドラマ主題歌のオファーを断ろうとしていたが、脚本を読んで心を動かされたという。',
+    createdAt: '2026-02-10T18:30:00+09:00',
   },
+  {
+    id: 'mock-record-002',
+    song: {
+      id: 'mock-song-002',
+      title: 'KICK BACK',
+      artist: '米津玄師',
+      albumName: 'KICK BACK',
+      albumArtUrl: 'https://via.placeholder.com/300x300?text=Kick+Back',
+      source: 'spotify',
+    },
+    mood: 'excited',
+    situation: '朝のランニング中',
+    episode: 'アニメ「チェンソーマン」のオープニングテーマ。米津玄師がアニメ主題歌を手がけるのは「海獣の子供」以来。Queenの「Crazy Little Thing Called Love」をサンプリングしている。',
+    createdAt: '2026-02-09T07:15:00+09:00',
+  },
+];
 
-  closeApp: () => {
-    if (!isIOS() && !isAndroid()) {
-      console.log('closeApp called in browser - navigating back');
-      // ブラウザでは履歴を戻るか、ウィンドウを閉じる
+// ===== モック実装（ブラウザ開発用） =====
+
+const createMockBridge = (): HearloomBridge => {
+  console.info('[Bridge] Running in browser mode with mock data');
+
+  // モック用のレコード保存（メモリ内）
+  let records = [...mockRecords];
+
+  return {
+    // 初期化・状態確認
+    getDeviceCapabilities: async () => {
+      console.log('[Bridge Mock] getDeviceCapabilities');
+      return {
+        supportsOnDeviceAI: true,
+        platform: 'ios' as const,
+      };
+    },
+
+    getAuthStatus: async () => {
+      console.log('[Bridge Mock] getAuthStatus');
+      return {
+        appleMusic: 'authorized' as const,
+        spotify: 'not_authorized' as const,
+      };
+    },
+
+    // 音楽サービス連携
+    connectAppleMusic: async () => {
+      console.log('[Bridge Mock] connectAppleMusic');
+      return { success: true };
+    },
+
+    connectSpotify: async () => {
+      console.log('[Bridge Mock] connectSpotify');
+      // OAuth認証のシミュレーション
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return { success: true };
+    },
+
+    getCurrentSong: async () => {
+      console.log('[Bridge Mock] getCurrentSong');
+      return mockSong;
+    },
+
+    // AI機能
+    generateEpisode: async (song: Song) => {
+      console.log('[Bridge Mock] generateEpisode', song);
+      // AI生成のシミュレーション
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // 有名な曲ならエピソードを返す（モック）
+      if (song.title === 'Pretender') {
+        return {
+          found: true,
+          episode: 'この曲は2019年にリリースされ、映画「コンフィデンスマンJP」の主題歌として大ヒット。実は最初ドラマ主題歌のオファーを断ろうとしていたが、脚本を読んで心を動かされたという。',
+        };
+      }
+
+      // 不明な曲
+      return {
+        found: false,
+        errorCode: 'UNKNOWN_SONG' as const,
+      };
+    },
+
+    // データ永続化
+    saveRecord: async (record: MusicRecordInput) => {
+      console.log('[Bridge Mock] saveRecord', record);
+      const id = `record-${Date.now()}`;
+      const newRecord: MusicRecord = {
+        ...record,
+        id,
+        createdAt: new Date().toISOString(),
+      };
+      records = [newRecord, ...records];
+      return { success: true, data: { id } };
+    },
+
+    getRecords: async (filter?: MusicRecordFilter) => {
+      console.log('[Bridge Mock] getRecords', filter);
+      let result = [...records];
+
+      if (filter?.mood) {
+        result = result.filter((r) => r.mood === filter.mood);
+      }
+      if (filter?.limit) {
+        result = result.slice(0, filter.limit);
+      }
+
+      return result;
+    },
+
+    getRecord: async (id: string) => {
+      console.log('[Bridge Mock] getRecord', id);
+      return records.find((r) => r.id === id) || null;
+    },
+
+    updateRecord: async (id: string, updates: MusicRecordUpdate) => {
+      console.log('[Bridge Mock] updateRecord', id, updates);
+      const index = records.findIndex((r) => r.id === id);
+      if (index === -1) {
+        return { success: false, error: { code: 'NOT_FOUND', message: 'Record not found' } };
+      }
+      records[index] = { ...records[index], ...updates };
+      return { success: true };
+    },
+
+    deleteRecord: async (id: string) => {
+      console.log('[Bridge Mock] deleteRecord', id);
+      const index = records.findIndex((r) => r.id === id);
+      if (index === -1) {
+        return { success: false, error: { code: 'NOT_FOUND', message: 'Record not found' } };
+      }
+      records.splice(index, 1);
+      return { success: true };
+    },
+
+    // 位置情報
+    requestLocationPermission: async () => {
+      console.log('[Bridge Mock] requestLocationPermission');
+      return { success: true, data: { granted: true } };
+    },
+
+    getCurrentLocation: async () => {
+      console.log('[Bridge Mock] getCurrentLocation');
+      return {
+        latitude: 35.6812,
+        longitude: 139.7671,
+        placeName: '東京駅',
+      };
+    },
+
+    // UI補助
+    triggerHapticFeedback: (type) => {
+      console.log('[Bridge Mock] triggerHapticFeedback', type);
+    },
+
+    closeApp: () => {
+      console.log('[Bridge Mock] closeApp');
       if (window.history.length > 1) {
         window.history.back();
-      } else {
-        window.close();
       }
-      return;
-    }
-
-    // iOS: コールバック方式
-    if (isIOS()) {
-      callIOSBridge<void>('closeApp');
-      return;
-    }
-
-    // Android: 直接呼び出し
-    if (isAndroid()) {
-      (window as any).HearloomBridge.closeApp();
-    }
-  },
+    },
+  };
 };
 
+// ===== Native実装 =====
+
+const createNativeBridge = (): HearloomBridge => {
+  return {
+    // 初期化・状態確認
+    getDeviceCapabilities: () => callNative<DeviceCapabilities>('getDeviceCapabilities'),
+    getAuthStatus: () => callNative<AuthStatus>('getAuthStatus'),
+
+    // 音楽サービス連携
+    connectAppleMusic: () => callNative<BridgeResult>('connectAppleMusic'),
+    connectSpotify: () => callNative<BridgeResult>('connectSpotify'),
+    getCurrentSong: () => callNative<Song | null>('getCurrentSong'),
+
+    // AI機能
+    generateEpisode: (song: Song) => callNative<EpisodeResult>('generateEpisode', song),
+
+    // データ永続化
+    saveRecord: (record: MusicRecordInput) => callNative<BridgeResult<{ id: string }>>('saveRecord', record),
+    getRecords: (filter?: MusicRecordFilter) => callNative<MusicRecord[]>('getRecords', filter),
+    getRecord: (id: string) => callNative<MusicRecord | null>('getRecord', { id }),
+    updateRecord: (id: string, updates: MusicRecordUpdate) => callNative<BridgeResult>('updateRecord', { id, updates }),
+    deleteRecord: (id: string) => callNative<BridgeResult>('deleteRecord', { id }),
+
+    // 位置情報
+    requestLocationPermission: () => callNative<BridgeResult<{ granted: boolean }>>('requestLocationPermission'),
+    getCurrentLocation: () => callNative<Location | null>('getCurrentLocation'),
+
+    // UI補助
+    triggerHapticFeedback: (type) => {
+      if (isIOS()) {
+        callIOSBridge<void>('triggerHapticFeedback', { type });
+      } else if (isAndroid()) {
+        (window as any).HearloomBridge?.triggerHapticFeedback(type);
+      }
+    },
+
+    closeApp: () => {
+      if (isIOS()) {
+        callIOSBridge<void>('closeApp');
+      } else if (isAndroid()) {
+        (window as any).HearloomBridge?.closeApp();
+      }
+    },
+  };
+};
+
+// ===== エクスポート =====
+
 /**
- * TypeScript型拡張
+ * Hearloom ブリッジAPI
+ *
+ * - ネイティブ環境: iOS/Android のブリッジを使用
+ * - ブラウザ環境: モックデータを使用（開発用）
  */
+export const bridge: HearloomBridge = isNative()
+  ? createNativeBridge()
+  : createMockBridge();
+
+/**
+ * プラットフォーム情報
+ */
+export const platform = {
+  isIOS,
+  isAndroid,
+  isNative,
+};
+
+// ===== TypeScript型拡張 =====
+
 declare global {
   interface Window {
     webkit?: {
@@ -258,3 +412,28 @@ declare global {
     };
   }
 }
+
+// ===== 旧API（後方互換用） =====
+
+/**
+ * @deprecated 旧設計のブリッジAPI。新コンセプトでは bridge を使用。
+ */
+export const hearloomBridge = {
+  getSharedUrl: async (): Promise<string | null> => {
+    // ブラウザ開発時
+    if (!isNative()) {
+      const params = new URLSearchParams(window.location.search);
+      const url = params.get('url');
+      if (url) return url;
+      return 'https://spotify.link/mock-track-id';
+    }
+    // Native
+    return callNative<string | null>('getSharedUrl');
+  },
+  closeApp: () => {
+    bridge.closeApp();
+  },
+};
+
+// Re-export types
+export * from './types';

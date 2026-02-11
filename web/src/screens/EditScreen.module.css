@@ -1,69 +1,223 @@
 /**
  * 編集画面のスタイル
+ *
+ * 既存の音楽記録を編集・削除するフォーム画面
+ * 記録画面と統一感のあるデザイン
  */
 
 .container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background-color: #ffffff;
+  min-height: 100%;
+  background: var(--color-bg-base);
+  position: relative;
+}
+
+/* Subtle ambient glow - slightly different from record screen */
+.container::before {
+  content: '';
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  height: 30vh;
+  background: radial-gradient(
+    ellipse at top center,
+    var(--color-tertiary-glow) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.25;
 }
 
 .content {
   flex: 1;
-  padding: 24px 16px;
+  padding: var(--space-6) var(--space-4);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  position: relative;
+  z-index: 1;
 }
 
 .section {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
+/* 日時表示 - 控えめなスタイル */
 .dateTime {
-  font-size: 16px;
-  font-weight: 500;
-  color: #666666;
-  padding: 4px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.dateTimeIcon {
+  font-size: var(--font-size-base);
+  opacity: 0.7;
 }
 
 .label {
   display: block;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333333;
-  margin-bottom: 12px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
 }
 
 .required {
-  font-size: 14px;
-  font-weight: 500;
-  color: #d32f2f;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-danger);
+  margin-left: var(--space-1);
+}
+
+.optional {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-secondary);
 }
 
 .buttonSection {
-  margin-top: 32px;
-  padding-bottom: 16px;
+  margin-top: var(--space-10);
+  padding-bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-/* ローディング状態 */
+/* ===== ローディング状態 ===== */
 .loading {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #666666;
-  font-size: 16px;
+  gap: var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  position: relative;
+  z-index: 1;
 }
 
-/* エラー状態 */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    var(--color-tertiary) 0%,
+    var(--color-secondary) 100%
+  );
+  animation: pulse 1.5s ease-in-out infinite;
+  box-shadow: var(--glow-secondary);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+}
+
+/* ===== エラー状態 ===== */
 .error {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #d32f2f;
-  font-size: 16px;
-  padding: 24px;
+  gap: var(--space-4);
+  color: var(--color-danger);
+  font-size: var(--font-size-base);
+  padding: var(--space-6);
   text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.errorIcon {
+  font-size: 48px;
+  opacity: 0.8;
+}
+
+.errorMessage {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  max-width: 280px;
+  line-height: 1.6;
+}
+
+/* ===== 削除確認エリア ===== */
+.dangerZone {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
+}
+
+.dangerZoneTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger);
+  margin-bottom: var(--space-3);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.dangerZoneText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+  line-height: 1.6;
+}
+
+/* ===== エピソードカード ===== */
+.episodeCard {
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.08) 0%,
+    rgba(59, 130, 246, 0.08) 100%
+  );
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+}
+
+.episodeTitle {
+  margin: 0 0 var(--space-3) 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.episodeText {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  color: var(--color-text-secondary);
 }

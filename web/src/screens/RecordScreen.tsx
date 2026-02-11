@@ -1,90 +1,65 @@
 /**
- * 記録画面（新規登録）
+ * 記録画面（新コンセプト）
  *
- * 共有メニューから起動し、曲の共有URLが自動反映された状態で開く画面。
- *
- * docs/design/screens.md の仕様に準拠:
- * - ヘッダー: 「← 記録する」（左矢印タップでキャンセル、音楽アプリに戻る）
- * - 曲情報カード: 共有URLを表示
- * - 気分選択: 6つのボタン（単一選択、必須）
- * - 状況入力: 1行テキスト入力（プレースホルダー: 「例: 朝の通勤電車で」、必須）
- * - 保存ボタン: プライマリカラー、気分と状況が入力されたら活性化
+ * ウィジェットタップ → アプリ起動 → 今聴いている曲が自動表示
+ * 気分を選ぶ（必須）+ 一言（任意）
+ * エピソード（曲の裏話・豆知識）がAIで生成され表示（即時報酬）
+ * 記録完了
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Header, Button, TextInput, ConfirmDialog } from '../components/common';
 import { MoodSelector } from '../components/MoodSelector';
 import { SongInfoCard } from '../components/SongInfoCard';
-import { useRecords } from '../hooks/useRecords';
-import { hearloomBridge } from '../bridge';
-import type { MoodType } from '../types/record';
+import { bridge } from '../bridge';
+import type { Song, MoodType, EpisodeResult } from '../bridge/types';
 import styles from './RecordScreen.module.css';
 
-/**
- * 開発環境かどうか
- */
-const isDevelopment = import.meta.env.DEV;
-
-/**
- * サンプルURL一覧（開発用）
- */
-const SAMPLE_URLS = [
-  { label: 'Spotify', url: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT' },
-  { label: 'Apple Music', url: 'https://music.apple.com/jp/album/bohemian-rhapsody/1440806041?i=1440806768' },
-  { label: 'YouTube', url: 'https://youtu.be/dQw4w9WgXcQ' },
-  { label: 'YouTube Music', url: 'https://music.youtube.com/watch?v=dQw4w9WgXcQ' },
-];
+/** 記録フローのステップ */
+type RecordStep = 'loading' | 'input' | 'generating' | 'episode' | 'saving' | 'complete';
 
 export const RecordScreen: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { create } = useRecords();
+
+  // 曲情報
+  const [currentSong, setCurrentSong] = useState<Song | null>(null);
 
   // 入力状態
-  const [url, setUrl] = useState<string>('');
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [situation, setSituation] = useState<string>('');
 
+  // エピソード
+  const [episodeResult, setEpisodeResult] = useState<EpisodeResult | null>(null);
+
   // UI状態
-  const [isLoading, setIsLoading] = useState(true);
+  const [step, setStep] = useState<RecordStep>('loading');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   /**
-   * 初回マウント時に共有URLを取得
+   * 初回マウント時に再生中の曲を取得
    */
   useEffect(() => {
-    const loadSharedUrl = async () => {
+    const loadCurrentSong = async () => {
       try {
-        // まずクエリパラメータをチェック
-        const urlParam = searchParams.get('url');
-        if (urlParam) {
-          setUrl(urlParam);
-          setIsLoading(false);
-          return;
-        }
-
-        // ネイティブブリッジから取得を試みる
-        const sharedUrl = await hearloomBridge.getSharedUrl();
-        if (sharedUrl) {
-          setUrl(sharedUrl);
+        const song = await bridge.getCurrentSong();
+        if (song) {
+          setCurrentSong(song);
+          setStep('input');
         } else {
-          // URLがない場合は一覧画面に戻る
-          console.warn('No shared URL available');
-          // 開発時はモックURLを使用
-          setUrl('https://spotify.link/development-mode');
+          setError('再生中の曲が見つかりません。音楽を再生してからもう一度お試しください。');
+          setStep('input');
         }
-      } catch (error) {
-        console.error('Failed to get shared URL:', error);
-        // 開発時はモックURLを使用
-        setUrl('https://spotify.link/development-mode');
-      } finally {
-        setIsLoading(false);
+      } catch (err) {
+        console.error('Failed to get current song:', err);
+        setError('曲情報の取得に失敗しました。');
+        setStep('input');
       }
     };
 
-    loadSharedUrl();
-  }, [searchParams]);
+    loadCurrentSong();
+  }, []);
 
   /**
    * 入力内容があるかどうか
@@ -92,9 +67,9 @@ export const RecordScreen: React.FC = () => {
   const hasInput = selectedMood !== null || situation.trim() !== '';
 
   /**
-   * 保存可能かどうか
+   * エピソード生成可能かどうか（気分が選択されていれば可）
    */
-  const canSave = selectedMood !== null && situation.trim() !== '' && url !== '';
+  const canGenerateEpisode = selectedMood !== null && currentSong !== null;
 
   /**
    * キャンセルボタンクリック時のハンドラ
@@ -103,10 +78,9 @@ export const RecordScreen: React.FC = () => {
     if (hasInput) {
       setShowCancelDialog(true);
     } else {
-      // 入力がなければそのまま戻る
-      navigate('/');
+      bridge.closeApp();
     }
-  }, [hasInput, navigate]);
+  }, [hasInput]);
 
   /**
    * キャンセル確認ダイアログで「キャンセル」を選択
@@ -120,41 +94,92 @@ export const RecordScreen: React.FC = () => {
    */
   const handleCancelDialogConfirm = useCallback(() => {
     setShowCancelDialog(false);
-    navigate('/');
-  }, [navigate]);
+    bridge.closeApp();
+  }, []);
+
+  /**
+   * エピソード生成ボタンクリック時のハンドラ
+   */
+  const handleGenerateEpisode = useCallback(async () => {
+    if (!canGenerateEpisode || !currentSong) {
+      return;
+    }
+
+    setStep('generating');
+    bridge.triggerHapticFeedback('light');
+
+    try {
+      const result = await bridge.generateEpisode(currentSong);
+      setEpisodeResult(result);
+      setStep('episode');
+    } catch (err) {
+      console.error('Failed to generate episode:', err);
+      setEpisodeResult({ found: false, errorCode: 'TIMEOUT' });
+      setStep('episode');
+    }
+  }, [canGenerateEpisode, currentSong]);
 
   /**
    * 保存ボタンクリック時のハンドラ
    */
-  const handleSave = useCallback(() => {
-    if (!canSave || !selectedMood) {
+  const handleSave = useCallback(async () => {
+    if (!selectedMood || !currentSong) {
       return;
     }
 
+    setStep('saving');
+    bridge.triggerHapticFeedback('medium');
+
     try {
-      create({
-        url,
+      const result = await bridge.saveRecord({
+        song: currentSong,
         mood: selectedMood,
-        situation: situation.trim(),
+        situation: situation.trim() || undefined,
+        episode: episodeResult?.episode,
       });
 
-      // 保存成功後、一覧画面に遷移
-      navigate('/');
-    } catch (error) {
-      console.error('Failed to save record:', error);
-      // TODO: エラー表示
+      if (result.success) {
+        setStep('complete');
+        // 少し待ってから一覧画面に遷移
+        setTimeout(() => {
+          navigate('/');
+        }, 1000);
+      } else {
+        setError('保存に失敗しました。もう一度お試しください。');
+        setStep('episode');
+      }
+    } catch (err) {
+      console.error('Failed to save record:', err);
+      setError('保存に失敗しました。');
+      setStep('episode');
     }
-  }, [canSave, selectedMood, url, situation, create, navigate]);
+  }, [selectedMood, currentSong, situation, episodeResult, navigate]);
 
   /**
    * ローディング表示
    */
-  if (isLoading) {
+  if (step === 'loading') {
     return (
       <div className={styles.container}>
         <Header title="記録する" showBackButton onBack={handleBack} />
         <div className={styles.loading}>
-          <span>読み込み中...</span>
+          <div className={styles.spinner} />
+          <span>曲情報を取得中...</span>
+        </div>
+      </div>
+    );
+  }
+
+  /**
+   * 完了表示
+   */
+  if (step === 'complete') {
+    return (
+      <div className={styles.container}>
+        <Header title="記録する" />
+        <div className={styles.complete}>
+          <div className={styles.checkmark}>✓</div>
+          <span>記録しました！</span>
         </div>
       </div>
     );
@@ -165,34 +190,22 @@ export const RecordScreen: React.FC = () => {
       <Header title="記録する" showBackButton onBack={handleBack} />
 
       <main className={styles.content}>
-        {/* 曲情報カード（開発時はURL入力可能） */}
+        {/* エラー表示 */}
+        {error && (
+          <div className={styles.errorBanner}>
+            {error}
+          </div>
+        )}
+
+        {/* 曲情報カード */}
         <section className={styles.section}>
-          {isDevelopment ? (
-            <div className={styles.devUrlSection}>
-              <label htmlFor="url" className={styles.label}>
-                曲のURL <span className={styles.devBadge}>DEV</span>
-              </label>
-              <TextInput
-                id="url"
-                value={url}
-                onChange={setUrl}
-                placeholder="https://open.spotify.com/track/..."
-              />
-              <div className={styles.sampleButtons}>
-                {SAMPLE_URLS.map((sample) => (
-                  <button
-                    key={sample.label}
-                    type="button"
-                    className={styles.sampleButton}
-                    onClick={() => setUrl(sample.url)}
-                  >
-                    {sample.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {currentSong ? (
+            <SongInfoCard song={currentSong} />
           ) : (
-            <SongInfoCard url={url} />
+            <div className={styles.noSongCard}>
+              <p>再生中の曲がありません</p>
+              <p className={styles.hint}>音楽を再生してからもう一度お試しください</p>
+            </div>
           )}
         </section>
 
@@ -205,26 +218,70 @@ export const RecordScreen: React.FC = () => {
           />
         </section>
 
-        {/* 状況入力 */}
+        {/* 状況入力（任意） */}
         <section className={styles.section}>
           <label htmlFor="situation" className={styles.label}>
-            どんな状況？<span className={styles.required}> *必須</span>
+            一言メモ<span className={styles.optional}> （任意）</span>
           </label>
           <TextInput
             id="situation"
             value={situation}
             onChange={setSituation}
-            placeholder="例: 朝の通勤電車で"
+            placeholder="例: 帰り道、ふと聴きたくなった"
             maxLength={100}
-            required
           />
         </section>
 
-        {/* 保存ボタン */}
+        {/* エピソード表示エリア */}
+        {step === 'generating' && (
+          <section className={styles.section}>
+            <div className={styles.episodeLoading}>
+              <div className={styles.spinner} />
+              <span>エピソードを探しています...</span>
+            </div>
+          </section>
+        )}
+
+        {step === 'episode' && episodeResult && (
+          <section className={styles.section}>
+            <div className={styles.episodeCard}>
+              <h3 className={styles.episodeTitle}>
+                {episodeResult.found ? '💡 この曲のエピソード' : '📝 エピソード'}
+              </h3>
+              {episodeResult.found && episodeResult.episode ? (
+                <p className={styles.episodeText}>{episodeResult.episode}</p>
+              ) : (
+                <p className={styles.episodeNotFound}>
+                  この曲のエピソードは見つかりませんでした。
+                  <br />
+                  代わりに一言メモを残してみませんか？
+                </p>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ボタンエリア */}
         <section className={styles.buttonSection}>
-          <Button fullWidth disabled={!canSave} onClick={handleSave}>
-            保存する
-          </Button>
+          {step === 'input' && (
+            <Button
+              fullWidth
+              disabled={!canGenerateEpisode}
+              onClick={handleGenerateEpisode}
+            >
+              エピソードを見る
+            </Button>
+          )}
+
+          {(step === 'episode' || step === 'saving') && (
+            <Button
+              fullWidth
+              onClick={handleSave}
+              disabled={step === 'saving'}
+            >
+              {step === 'saving' ? '保存中...' : '記録する'}
+            </Button>
+          )}
         </section>
       </main>
 

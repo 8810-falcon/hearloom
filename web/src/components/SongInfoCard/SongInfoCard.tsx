@@ -1,42 +1,46 @@
 /**
  * 曲情報カードコンポーネント
  *
- * 共有URLを表示するシンプルなカードです。
- * MVP後の拡張機能として曲名・アーティスト名表示を追加予定。
+ * 再生中の曲情報（アルバムアート、曲名、アーティスト名）を表示します。
  */
 
 import React from 'react';
+import type { Song } from '../../bridge/types';
 import styles from './SongInfoCard.module.css';
 
 interface SongInfoCardProps {
-  /** 共有URL */
-  url: string;
+  /** 曲情報 */
+  song: Song;
 }
 
-/**
- * URLを短縮表示用にフォーマット
- */
-const formatUrl = (url: string): string => {
-  try {
-    const urlObj = new URL(url);
-    // ホスト名 + パスの一部を表示
-    const path = urlObj.pathname.substring(0, 20);
-    return `${urlObj.host}${path}${path.length >= 20 ? '...' : ''}`;
-  } catch {
-    // URLパースに失敗した場合はそのまま表示
-    return url.length > 40 ? `${url.substring(0, 40)}...` : url;
-  }
-};
+export const SongInfoCard: React.FC<SongInfoCardProps> = ({ song }) => {
+  const sourceLabel = song.source === 'apple_music' ? 'Apple Music' : 'Spotify';
 
-export const SongInfoCard: React.FC<SongInfoCardProps> = ({ url }) => {
   return (
     <div className={styles.card}>
-      <div className={styles.icon}>
-        <span className={styles.musicNote}>♪</span>
+      {/* アルバムアート */}
+      <div className={styles.albumArtContainer}>
+        {song.albumArtUrl ? (
+          <img
+            src={song.albumArtUrl}
+            alt={`${song.albumName || song.title} のアルバムアート`}
+            className={styles.albumArt}
+          />
+        ) : (
+          <div className={styles.albumArtPlaceholder}>
+            <span className={styles.musicIcon}>♪</span>
+          </div>
+        )}
       </div>
-      <div className={styles.content}>
-        <span className={styles.label}>URL:</span>
-        <span className={styles.url}>{formatUrl(url)}</span>
+
+      {/* 曲情報 */}
+      <div className={styles.info}>
+        <h2 className={styles.title}>{song.title}</h2>
+        <p className={styles.artist}>{song.artist}</p>
+        {song.albumName && (
+          <p className={styles.album}>{song.albumName}</p>
+        )}
+        <span className={styles.source}>{sourceLabel}</span>
       </div>
     </div>
   );

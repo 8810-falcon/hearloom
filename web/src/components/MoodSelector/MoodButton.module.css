@@ -1,6 +1,7 @@
 /**
  * 気分選択ボタンのスタイル
  *
+ * 選択時にグロウ効果で感情を表現
  * タッチターゲットは最小44x44pt（iOS HIG）を満たす
  */
 
@@ -10,47 +11,145 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 64px;
-  padding: 8px;
-  background-color: transparent;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
+  min-height: 72px;
+  padding: var(--space-3);
+  background: var(--color-bg-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: transform 0.1s, background-color 0.2s, border-color 0.2s;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform var(--transition-fast),
+    background-color var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+/* Subtle gradient overlay */
+.button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
 }
 
 .button:hover {
-  border-color: #bdbdbd;
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-surface-hover);
 }
 
 .button:active {
   transform: scale(0.95);
 }
 
+/* ===== 選択状態 - Mood別スタイル ===== */
+
 .button.selected {
-  border-width: 3px;
-  color: #ffffff;
+  border-width: 2px;
 }
 
-.button.selected .label {
-  color: #ffffff;
+/* Excited - 高揚（ゴールド） */
+.button.selected.excited {
+  background: var(--color-mood-excited-bg);
+  border-color: var(--color-mood-excited);
+  box-shadow:
+    0 0 20px var(--color-mood-excited-glow),
+    inset 0 0 20px rgba(251, 191, 36, 0.1);
 }
 
-.button.selected .emoji {
-  color: #ffffff;
+/* Calm - 穏やか（グリーン） */
+.button.selected.calm {
+  background: var(--color-mood-calm-bg);
+  border-color: var(--color-mood-calm);
+  box-shadow:
+    0 0 20px var(--color-mood-calm-glow),
+    inset 0 0 20px rgba(52, 211, 153, 0.1);
 }
+
+/* Melancholy - 切ない（ブルー） */
+.button.selected.melancholy {
+  background: var(--color-mood-melancholy-bg);
+  border-color: var(--color-mood-melancholy);
+  box-shadow:
+    0 0 20px var(--color-mood-melancholy-glow),
+    inset 0 0 20px rgba(96, 165, 250, 0.1);
+}
+
+/* Focused - 集中（パープル） */
+.button.selected.focused {
+  background: var(--color-mood-focused-bg);
+  border-color: var(--color-mood-focused);
+  box-shadow:
+    0 0 20px var(--color-mood-focused-glow),
+    inset 0 0 20px rgba(168, 85, 247, 0.1);
+}
+
+/* Nostalgic - 懐かし（ローズピンク） */
+.button.selected.nostalgic {
+  background: var(--color-mood-nostalgic-bg);
+  border-color: var(--color-mood-nostalgic);
+  box-shadow:
+    0 0 20px var(--color-mood-nostalgic-glow),
+    inset 0 0 20px rgba(244, 114, 182, 0.1);
+}
+
+/* Other - その他（グレー） */
+.button.selected.other {
+  background: var(--color-mood-other-bg);
+  border-color: var(--color-mood-other);
+  box-shadow:
+    0 0 20px var(--color-mood-other-glow),
+    inset 0 0 20px rgba(113, 113, 122, 0.1);
+}
+
+/* ===== ラベルとEmoji ===== */
 
 .label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333333;
-  margin-bottom: 4px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1);
+  transition: color var(--transition-base);
+  position: relative;
+  z-index: 1;
 }
 
 .emoji {
-  font-size: 16px;
-  color: #666666;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 20px;
+  position: relative;
+  z-index: 1;
+  transition: transform var(--transition-spring);
 }
+
+/* 選択時のテキストカラー */
+.button.selected .label {
+  color: var(--color-text-primary);
+}
+
+.button.selected .emoji {
+  transform: scale(1.1);
+}
+
+/* Hover時のEmoji効果 */
+.button:hover .emoji {
+  transform: scale(1.05);
+}
+
+/* ===== Mood ID Classes (for CSS Modules export) ===== */
+.excited {}
+.calm {}
+.melancholy {}
+.focused {}
+.nostalgic {}
+.other {}

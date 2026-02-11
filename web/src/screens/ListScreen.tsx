@@ -3,21 +3,16 @@
  *
  * アプリを直接起動した際のホーム画面。
  * 過去の記録を日付順（最新順）で表示します。
- *
- * docs/design/screens.md の仕様に準拠:
- * - ヘッダー: 「Hearloom」（アプリ名、固定）
- * - 日付セクション: 「YYYY年M月D日（曜日）時間帯」でグルーピング
- * - 記録カード: 気分（アイコン付き）+ URL + 状況の一言
- * - 空状態: 記録がない場合のメッセージ表示
+ * 新コンセプト（Song型ベース、MusicRecord型）に対応。
  */
 
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Header, Button } from '../components/common';
+import { Header, Button, Portal } from '../components/common';
 import { RecordCard } from '../components/RecordCard';
 import { useRecords } from '../hooks/useRecords';
 import { formatDateWithTimeOfDay } from '../utils/dateUtils';
-import type { Record } from '../types/record';
+import type { MusicRecord } from '../bridge/types';
 import styles from './ListScreen.module.css';
 
 /**
@@ -30,10 +25,10 @@ const isDevelopment = import.meta.env.DEV;
  */
 interface RecordGroup {
   sectionTitle: string;
-  records: Record[];
+  records: MusicRecord[];
 }
 
-const groupRecordsByDateSection = (records: Record[]): RecordGroup[] => {
+const groupRecordsByDateSection = (records: MusicRecord[]): RecordGroup[] => {
   const groups: RecordGroup[] = [];
   let currentGroup: RecordGroup | null = null;
 
@@ -87,6 +82,7 @@ export const ListScreen: React.FC = () => {
       <div className={styles.container}>
         <Header title="Hearloom" />
         <div className={styles.loading}>
+          <div className={styles.spinner} />
           <span>読み込み中...</span>
         </div>
       </div>
@@ -119,7 +115,7 @@ export const ListScreen: React.FC = () => {
           <p className={styles.emptyText}>
             まだ記録がありません。
             <br />
-            音楽アプリから共有してみましょう
+            音楽を聴きながら記録してみましょう
           </p>
           {isDevelopment && (
             <Button onClick={handleAddRecord} className={styles.devButton}>
@@ -151,15 +147,17 @@ export const ListScreen: React.FC = () => {
         ))}
       </main>
 
-      {/* 開発用: 新規記録追加ボタン（FAB） */}
+      {/* 開発用: 新規記録追加ボタン（FAB） - Portalで描画してtransformの影響を回避 */}
       {isDevelopment && (
-        <button
-          className={styles.fab}
-          onClick={handleAddRecord}
-          aria-label="新規記録を追加"
-        >
-          +
-        </button>
+        <Portal>
+          <button
+            className={styles.fab}
+            onClick={handleAddRecord}
+            aria-label="新規記録を追加"
+          >
+            +
+          </button>
+        </Portal>
       )}
     </div>
   );

@@ -1,0 +1,148 @@
+/**
+ * 埋め込みプレーヤーのスタイル
+ *
+ * ダーク「Midnight Groove」テーマに調和するデザイン
+ */
+
+.container {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-bg-surface);
+}
+
+.container[data-service="spotify"] {
+  background: #121212;
+}
+
+.container[data-service="apple-music"] {
+  background: #1a1a1a;
+}
+
+.container[data-service="youtube"],
+.container[data-service="youtube-music"] {
+  background: #0f0f0f;
+}
+
+.compact {
+  border-radius: var(--radius-md);
+}
+
+.iframe {
+  display: block;
+  border: none;
+  border-radius: inherit;
+}
+
+/* ローディング状態 */
+.loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-surface);
+  z-index: 1;
+}
+
+.shimmer {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-surface) 0%,
+    var(--color-bg-surface-hover) 50%,
+    var(--color-bg-surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* フォールバック表示（埋め込み失敗時） */
+.fallback {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.fallback.compact {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.serviceIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.compact .serviceIcon {
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+}
+
+.serviceIcon[data-service="spotify"] {
+  background: linear-gradient(135deg, #1DB954 0%, #1ed760 100%);
+  color: #000;
+}
+
+.serviceIcon[data-service="apple-music"] {
+  background: linear-gradient(135deg, #FA233B 0%, #fb5c74 100%);
+  color: #fff;
+}
+
+.serviceIcon[data-service="youtube"],
+.serviceIcon[data-service="youtube-music"] {
+  background: linear-gradient(135deg, #FF0000 0%, #ff4444 100%);
+  color: #fff;
+}
+
+.serviceIcon[data-service="unknown"] {
+  background: var(--color-bg-surface-hover);
+  color: var(--color-text-secondary);
+}
+
+.fallbackText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1;
+}
+
+.serviceName {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.urlText {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

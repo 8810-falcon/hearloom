@@ -1,24 +1,32 @@
 /**
  * ヘッダーコンポーネントのスタイル
+ *
+ * グラスモーフィズム効果で浮遊感を演出
  */
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 56px;
-  padding: 0 16px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
+  height: 60px;
+  padding: 0 var(--space-4);
+  background: linear-gradient(
+    180deg,
+    rgba(20, 20, 24, 0.95) 0%,
+    rgba(20, 20, 24, 0.85) 100%
+  );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: var(--z-sticky);
 }
 
 .left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .right {
@@ -32,63 +40,72 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  background: none;
+  background: transparent;
   border: none;
   cursor: pointer;
   padding: 0;
-  margin-left: -12px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
+  margin-left: -10px;
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .backButton:hover {
-  background-color: #f5f5f5;
+  background-color: var(--color-bg-surface-hover);
 }
 
 .backButton:active {
-  background-color: #eeeeee;
+  background-color: var(--color-bg-surface-active);
+  transform: scale(0.95);
 }
 
 .backArrow {
   font-size: 24px;
-  color: #333333;
+  color: var(--color-text-primary);
+  transition: color var(--transition-fast);
+}
+
+.backButton:hover .backArrow {
+  color: var(--color-primary-light);
 }
 
 .title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333333;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
   margin: 0;
+  letter-spacing: var(--letter-spacing-tight);
 }
 
 .actionButton {
-  font-size: 16px;
-  font-weight: 500;
-  color: #1976d2;
-  background: none;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary-light);
+  background: transparent;
   border: none;
   cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .actionButton:hover {
-  background-color: #e3f2fd;
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary);
 }
 
 .actionButton:active {
-  background-color: #bbdefb;
+  transform: scale(0.95);
 }
 
 .actionButton.danger {
-  color: #d32f2f;
+  color: var(--color-danger);
 }
 
 .actionButton.danger:hover {
-  background-color: #ffebee;
-}
-
-.actionButton.danger:active {
-  background-color: #ffcdd2;
+  background-color: var(--color-danger-bg);
 }

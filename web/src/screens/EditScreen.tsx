@@ -2,14 +2,7 @@
  * 編集画面
  *
  * 一覧画面から記録をタップして遷移。既存記録の編集・削除が可能。
- *
- * docs/design/screens.md の仕様に準拠:
- * - ヘッダー: 「← 編集」（左矢印で一覧に戻る）+ 右上に「削除」ボタン
- * - 記録日時: 表示のみ（編集不可）
- * - 曲情報カード: URL表示のみ（編集不可）
- * - 気分選択: 現在の選択がハイライト状態、変更可能
- * - 状況入力: 既存の値が入力された状態、変更可能
- * - 保存ボタン: 変更があった場合のみ活性化
+ * 新コンセプト（Song型ベース、MusicRecord型）に対応。
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -19,7 +12,7 @@ import { MoodSelector } from '../components/MoodSelector';
 import { SongInfoCard } from '../components/SongInfoCard';
 import { useRecords, useRecord } from '../hooks/useRecords';
 import { formatDateWithTimeOfDay } from '../utils/dateUtils';
-import type { MoodType } from '../types/record';
+import type { MoodType } from '../bridge/types';
 import styles from './EditScreen.module.css';
 
 export const EditScreen: React.FC = () => {
@@ -35,6 +28,8 @@ export const EditScreen: React.FC = () => {
   // UI状態
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   /**
    * 記録データを読み込んだら編集状態を初期化
@@ -42,7 +37,7 @@ export const EditScreen: React.FC = () => {
   useEffect(() => {
     if (record) {
       setSelectedMood(record.mood);
-      setSituation(record.situation);
+      setSituation(record.situation || '');
     }
   }, [record]);
 
@@ -51,14 +46,13 @@ export const EditScreen: React.FC = () => {
    */
   const hasChanges = useMemo(() => {
     if (!record) return false;
-    return selectedMood !== record.mood || situation !== record.situation;
+    return selectedMood !== record.mood || situation !== (record.situation || '');
   }, [record, selectedMood, situation]);
 
   /**
-   * 保存可能かどうか
+   * 保存可能かどうか（気分は必須、一言は任意）
    */
-  const canSave =
-    hasChanges && selectedMood !== null && situation.trim() !== '';
+  const canSave = hasChanges && selectedMood !== null;
 
   /**
    * 戻るボタンクリック時のハンドラ
@@ -103,37 +97,49 @@ export const EditScreen: React.FC = () => {
   /**
    * 削除確認ダイアログで「削除」を選択
    */
-  const handleDeleteDialogConfirm = useCallback(() => {
+  const handleDeleteDialogConfirm = useCallback(async () => {
     if (!id) return;
 
+    setIsDeleting(true);
     try {
-      remove(id);
-      setShowDeleteDialog(false);
-      navigate('/');
+      const success = await remove(id);
+      if (success) {
+        setShowDeleteDialog(false);
+        navigate('/');
+      } else {
+        console.error('Failed to delete record');
+      }
     } catch (error) {
       console.error('Failed to delete record:', error);
-      // TODO: エラー表示
+    } finally {
+      setIsDeleting(false);
     }
   }, [id, remove, navigate]);
 
   /**
    * 保存ボタンクリック時のハンドラ
    */
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!canSave || !id || !selectedMood) {
       return;
     }
 
+    setIsSaving(true);
     try {
-      update(id, {
+      const success = await update(id, {
         mood: selectedMood,
-        situation: situation.trim(),
+        situation: situation.trim() || undefined,
       });
 
-      navigate('/');
+      if (success) {
+        navigate('/');
+      } else {
+        console.error('Failed to update record');
+      }
     } catch (error) {
       console.error('Failed to update record:', error);
-      // TODO: エラー表示
+    } finally {
+      setIsSaving(false);
     }
   }, [canSave, id, selectedMood, situation, update, navigate]);
 
@@ -145,6 +151,7 @@ export const EditScreen: React.FC = () => {
       <div className={styles.container}>
         <Header title="編集" showBackButton onBack={handleBack} />
         <div className={styles.loading}>
+          <div className={styles.spinner} />
           <span>読み込み中...</span>
         </div>
       </div>
@@ -186,8 +193,18 @@ export const EditScreen: React.FC = () => {
 
         {/* 曲情報カード */}
         <section className={styles.section}>
-          <SongInfoCard url={record.url} />
+          <SongInfoCard song={record.song} />
         </section>
+
+        {/* エピソード表示（あれば） */}
+        {record.episode && (
+          <section className={styles.section}>
+            <div className={styles.episodeCard}>
+              <h3 className={styles.episodeTitle}>💡 この曲のエピソード</h3>
+              <p className={styles.episodeText}>{record.episode}</p>
+            </div>
+          </section>
+        )}
 
         {/* 気分選択 */}
         <section className={styles.section}>
@@ -198,25 +215,28 @@ export const EditScreen: React.FC = () => {
           />
         </section>
 
-        {/* 状況入力 */}
+        {/* 状況入力（任意） */}
         <section className={styles.section}>
           <label htmlFor="situation" className={styles.label}>
-            どんな状況？<span className={styles.required}> *必須</span>
+            一言メモ<span className={styles.optional}> （任意）</span>
           </label>
           <TextInput
             id="situation"
             value={situation}
             onChange={setSituation}
-            placeholder="例: 朝の通勤電車で"
+            placeholder="例: 帰り道、ふと聴きたくなった"
             maxLength={100}
-            required
           />
         </section>
 
         {/* 保存ボタン */}
         <section className={styles.buttonSection}>
-          <Button fullWidth disabled={!canSave} onClick={handleSave}>
-            保存する
+          <Button
+            fullWidth
+            disabled={!canSave || isSaving}
+            onClick={handleSave}
+          >
+            {isSaving ? '保存中...' : '保存する'}
           </Button>
         </section>
       </main>
@@ -226,7 +246,7 @@ export const EditScreen: React.FC = () => {
         isOpen={showDeleteDialog}
         title="この記録を削除しますか？"
         message="削除した記録は元に戻せません。"
-        confirmText="削除"
+        confirmText={isDeleting ? '削除中...' : '削除'}
         cancelText="キャンセル"
         onConfirm={handleDeleteDialogConfirm}
         onCancel={handleDeleteDialogCancel}

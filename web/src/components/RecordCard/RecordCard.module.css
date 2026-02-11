@@ -1,63 +1,249 @@
 /**
  * 記録カードのスタイル
+ *
+ * 新コンセプト: アルバムアート + 曲情報 + 気分
  */
 
 .card {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: var(--space-3);
   width: 100%;
-  padding: 16px;
-  background-color: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
+  padding: var(--space-3);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
   cursor: pointer;
   text-align: left;
-  transition: background-color 0.2s, transform 0.1s;
+  position: relative;
+  overflow: hidden;
   -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
+  transition:
+    transform var(--transition-fast),
+    background-color var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
 }
 
 .card:hover {
-  background-color: #fafafa;
+  background: var(--color-bg-surface-hover);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-md);
 }
 
 .card:active {
   transform: scale(0.98);
-  background-color: #f5f5f5;
+  background: var(--color-bg-surface-active);
 }
+
+/* ===== Thumbnail ===== */
+
+.thumbnail {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+}
+
+.albumArt {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.albumArtPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 20px;
+}
+
+/* ===== Info Area ===== */
+
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ===== Header with Mood Badge ===== */
 
 .header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
 }
 
 .mood {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 16px;
+  gap: var(--space-1);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+}
+
+/* Mood Badge Colors */
+.mood.excited {
+  background: var(--color-mood-excited-bg);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.mood.calm {
+  background: var(--color-mood-calm-bg);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.mood.melancholy {
+  background: var(--color-mood-melancholy-bg);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.mood.focused {
+  background: var(--color-mood-focused-bg);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.mood.nostalgic {
+  background: var(--color-mood-nostalgic-bg);
+  border: 1px solid rgba(244, 114, 182, 0.3);
+}
+
+.mood.other {
+  background: var(--color-mood-other-bg);
+  border: 1px solid rgba(113, 113, 122, 0.3);
 }
 
 .moodLabel {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333333;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 .moodEmoji {
-  font-size: 14px;
-  color: #666666;
+  font-size: var(--font-size-xs);
 }
 
-.url {
-  font-size: 13px;
-  color: #1976d2;
-  word-break: break-all;
+/* ===== Service Badge ===== */
+
+.serviceBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.02em;
 }
+
+.serviceBadge.spotify {
+  background: rgba(30, 215, 96, 0.15);
+  color: #1DB954;
+}
+
+.serviceBadge.appleMusic {
+  background: rgba(250, 35, 59, 0.15);
+  color: #FA233B;
+}
+
+/* ===== Song Info ===== */
+
+.songInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.songTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.songArtist {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Situation Text ===== */
 
 .situation {
-  font-size: 14px;
-  color: #333333;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
   line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
+
+/* ===== Card with Mood Accent - ホバー時のグロウ ===== */
+
+.card.excited:hover {
+  border-color: rgba(251, 191, 36, 0.4);
+  box-shadow:
+    var(--shadow-md),
+    0 0 20px rgba(251, 191, 36, 0.08);
+}
+
+.card.calm:hover {
+  border-color: rgba(52, 211, 153, 0.4);
+  box-shadow:
+    var(--shadow-md),
+    0 0 20px rgba(52, 211, 153, 0.08);
+}
+
+.card.melancholy:hover {
+  border-color: rgba(96, 165, 250, 0.4);
+  box-shadow:
+    var(--shadow-md),
+    0 0 20px rgba(96, 165, 250, 0.08);
+}
+
+.card.focused:hover {
+  border-color: rgba(168, 85, 247, 0.4);
+  box-shadow:
+    var(--shadow-md),
+    0 0 20px rgba(168, 85, 247, 0.08);
+}
+
+.card.nostalgic:hover {
+  border-color: rgba(244, 114, 182, 0.4);
+  box-shadow:
+    var(--shadow-md),
+    0 0 20px rgba(244, 114, 182, 0.08);
+}
+
+.card.other:hover {
+  border-color: rgba(113, 113, 122, 0.4);
+  box-shadow:
+    var(--shadow-md),
+    0 0 20px rgba(113, 113, 122, 0.08);
+}
+
+/* ===== Mood ID Classes (for CSS Modules export) ===== */
+.excited {}
+.calm {}
+.melancholy {}
+.focused {}
+.nostalgic {}
+.other {}
+
+/* ===== Service ID Classes (for CSS Modules export) ===== */
+.spotify {}
+.appleMusic {}

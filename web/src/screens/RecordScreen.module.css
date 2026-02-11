@@ -1,97 +1,293 @@
 /**
  * 記録画面のスタイル
+ *
+ * 新コンセプト：曲表示 → 気分選択 → エピソード表示 → 記録
  */
 
 .container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background-color: #ffffff;
+  min-height: 100%;
+  background: var(--color-bg-base);
+  position: relative;
+}
+
+/* Subtle ambient glow */
+.container::before {
+  content: '';
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  height: 30vh;
+  background: radial-gradient(
+    ellipse at top center,
+    var(--color-secondary-glow) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
 }
 
 .content {
   flex: 1;
-  padding: 24px 16px;
+  padding: var(--space-6) var(--space-4);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  position: relative;
+  z-index: 1;
 }
 
 .section {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .label {
   display: block;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333333;
-  margin-bottom: 12px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
 }
 
 .required {
-  font-size: 14px;
-  font-weight: 500;
-  color: #d32f2f;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-danger);
+  margin-left: var(--space-1);
+}
+
+.optional {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-secondary);
 }
 
 .buttonSection {
-  margin-top: 32px;
-  padding-bottom: 16px;
+  margin-top: var(--space-6);
+  padding-bottom: var(--space-6);
 }
 
-/* ローディング状態 */
+/* ===== ローディング状態 ===== */
 .loading {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #666666;
-  font-size: 16px;
+  gap: var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  position: relative;
+  z-index: 1;
 }
 
-/* 開発用URL入力セクション */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== 完了状態 ===== */
+.complete {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  position: relative;
+  z-index: 1;
+}
+
+.checkmark {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-success);
+  color: white;
+  font-size: 32px;
+  border-radius: 50%;
+  animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ===== エラーバナー ===== */
+.errorBanner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+/* ===== 曲なしカード ===== */
+.noSongCard {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+}
+
+.noSongCard p {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+}
+
+.hint {
+  margin-top: var(--space-2) !important;
+  color: var(--color-text-secondary) !important;
+  font-size: var(--font-size-sm) !important;
+}
+
+/* ===== エピソードカード ===== */
+.episodeLoading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.episodeCard {
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.08) 0%,
+    rgba(59, 130, 246, 0.08) 100%
+  );
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.episodeTitle {
+  margin: 0 0 var(--space-3) 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.episodeText {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+
+.episodeNotFound {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/* ===== 開発用URL入力セクション（レガシー） ===== */
 .devUrlSection {
-  background-color: #fff8e1;
-  border: 1px dashed #ffc107;
-  border-radius: 8px;
-  padding: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.08) 0%,
+    rgba(251, 191, 36, 0.04) 100%
+  );
+  border: 1px dashed rgba(251, 191, 36, 0.4);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
 }
 
 .devBadge {
   display: inline-block;
-  background-color: #ffc107;
-  color: #333333;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 8px;
+  background: linear-gradient(
+    135deg,
+    #FBBF24 0%,
+    #F59E0B 100%
+  );
+  color: #000000;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  margin-left: var(--space-2);
   vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
 }
 
 .sampleButtons {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .sampleButton {
-  background-color: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 16px;
-  padding: 6px 12px;
-  font-size: 12px;
-  color: #666666;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .sampleButton:hover {
-  background-color: #f5f5f5;
-  border-color: #bdbdbd;
+  background: var(--color-bg-surface-hover);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
 }
 
 .sampleButton:active {
-  background-color: #eeeeee;
+  transform: scale(0.95);
+  background: var(--color-bg-surface-active);
 }

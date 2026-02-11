@@ -3,154 +3,291 @@
  *
  * ネイティブ（iOS/Android）が提供するAPIの型定義です。
  * ネイティブ側の実装と必ず一致させてください。
- */
-
-/**
- * 楽曲情報
- */
-export interface Track {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
-  albumArtUrl?: string;
-  playedAt: string; // ISO 8601形式
-  durationMs: number;
-  audioFeatures?: AudioFeatures;
-}
-
-/**
- * 音響特徴（Spotify Audio Features）
- */
-export interface AudioFeatures {
-  valence: number; // 0-1: ポジティブ度
-  energy: number; // 0-1: エネルギー
-  danceability: number; // 0-1: ダンサビリティ
-  acousticness: number; // 0-1: アコースティック度
-  tempo: number; // BPM
-}
-
-/**
- * 感情タグ
- */
-export interface EmotionTag {
-  id: string;
-  label: string; // "楽しい", "悲しい", "集中", など
-  color: string; // HEX color
-}
-
-/**
- * 聴取履歴エントリ
- */
-export interface ListeningHistoryEntry {
-  track: Track;
-  emotionTags: EmotionTag[];
-  memo?: string;
-  isManuallyEdited: boolean;
-}
-
-/**
- * 通知パラメータ
- */
-export interface NotificationParams {
-  title: string;
-  body: string;
-  scheduledAt?: string; // ISO 8601形式（省略時は即座に通知）
-  data?: Record<string, unknown>;
-}
-
-/**
- * Hearloom MVP用ブリッジAPI
  *
- * docs/design/screens.md のブリッジAPI仕様に準拠
+ * @see docs/tech/architecture.md
+ */
+
+// ===== 基本型 =====
+
+/**
+ * ブリッジAPI共通レスポンス
+ */
+export interface BridgeResult<T = void> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+// ===== デバイス・認証 =====
+
+/**
+ * デバイス機能情報
+ */
+export interface DeviceCapabilities {
+  /** オンデバイスAI（Apple Intelligence / Gemini Nano）対応 */
+  supportsOnDeviceAI: boolean;
+  /** プラットフォーム */
+  platform: 'ios' | 'android';
+}
+
+/**
+ * 音楽サービス認証状態
+ */
+export interface AuthStatus {
+  /** Apple Music認証状態（iOS only） */
+  appleMusic: 'authorized' | 'denied' | 'not_determined';
+  /** Spotify認証状態 */
+  spotify: 'authorized' | 'not_authorized';
+}
+
+// ===== 曲情報 =====
+
+/**
+ * 曲情報
+ */
+export interface Song {
+  /** 曲ID（プラットフォーム固有） */
+  id: string;
+  /** 曲名 */
+  title: string;
+  /** アーティスト名 */
+  artist: string;
+  /** アルバム名 */
+  albumName?: string;
+  /** アルバムアートURL */
+  albumArtUrl?: string;
+  /** 音楽サービス */
+  source: 'apple_music' | 'spotify';
+}
+
+// ===== エピソード =====
+
+/**
+ * エピソード生成結果
+ */
+export interface EpisodeResult {
+  /** エピソードが見つかったか */
+  found: boolean;
+  /** エピソード本文 */
+  episode?: string;
+  /** エラーコード（found=false の場合） */
+  errorCode?: 'UNSUPPORTED_DEVICE' | 'MODEL_NOT_READY' | 'UNKNOWN_SONG' | 'TIMEOUT';
+}
+
+// ===== 位置情報 =====
+
+/**
+ * 位置情報
+ */
+export interface Location {
+  /** 緯度 */
+  latitude: number;
+  /** 経度 */
+  longitude: number;
+  /** 場所名（逆ジオコーディング結果） */
+  placeName?: string;
+}
+
+// ===== 記録データ =====
+
+/**
+ * 気分タイプ
+ */
+export type MoodType =
+  | 'excited'    // 高揚
+  | 'calm'       // 穏やか
+  | 'melancholy' // 切ない
+  | 'focused'    // 集中
+  | 'nostalgic'  // 懐かし
+  | 'other';     // その他
+
+/**
+ * 気分の設定情報
+ */
+export interface MoodConfig {
+  id: MoodType;
+  label: string;
+  emoji: string;
+  color: string;
+}
+
+/**
+ * 気分設定一覧
+ */
+export const MOOD_CONFIGS: MoodConfig[] = [
+  { id: 'excited', label: '高揚', emoji: '^_^', color: '#FFA726' },
+  { id: 'calm', label: '穏やか', emoji: '-_-', color: '#66BB6A' },
+  { id: 'melancholy', label: '切ない', emoji: ';_;', color: '#42A5F5' },
+  { id: 'focused', label: '集中', emoji: 'o_o', color: '#AB47BC' },
+  { id: 'nostalgic', label: '懐かし', emoji: 'v_v', color: '#8D6E63' },
+  { id: 'other', label: 'その他', emoji: '...', color: '#BDBDBD' },
+];
+
+/**
+ * MoodTypeからMoodConfigを取得
+ */
+export const getMoodConfig = (moodType: MoodType): MoodConfig => {
+  const config = MOOD_CONFIGS.find((c) => c.id === moodType);
+  if (!config) {
+    throw new Error(`Unknown mood type: ${moodType}`);
+  }
+  return config;
+};
+
+/**
+ * 記録データ
+ * NOTE: TypeScript組み込みのRecord型と衝突するためMusicRecordに命名
+ */
+export interface MusicRecord {
+  /** 記録ID（UUID） */
+  id: string;
+  /** 曲情報 */
+  song: Song;
+  /** 気分 */
+  mood: MoodType;
+  /** 一言メモ（任意） */
+  situation?: string;
+  /** エピソード（AI生成） */
+  episode?: string;
+  /** 位置情報（オプトイン） */
+  location?: Location;
+  /** 記録日時（ISO 8601形式） */
+  createdAt: string;
+}
+
+/**
+ * 記録作成時の入力データ
+ */
+export type MusicRecordInput = Omit<MusicRecord, 'id' | 'createdAt'>;
+
+/**
+ * 記録更新時の入力データ
+ */
+export type MusicRecordUpdate = Partial<Pick<MusicRecord, 'mood' | 'situation'>>;
+
+/**
+ * 記録フィルタ
+ */
+export interface MusicRecordFilter {
+  /** 開始日時（ISO 8601形式） */
+  startDate?: string;
+  /** 終了日時（ISO 8601形式） */
+  endDate?: string;
+  /** 気分でフィルタ */
+  mood?: MoodType;
+  /** 取得件数上限 */
+  limit?: number;
+  /** オフセット */
+  offset?: number;
+}
+
+// ===== ブリッジAPI =====
+
+/**
+ * Hearloom ブリッジAPI
+ *
+ * @see docs/tech/architecture.md
  */
 export interface HearloomBridge {
-  /**
-   * 共有URLを取得（記録画面起動時）
-   * 音楽アプリからの共有メニュー経由で渡されたURLを取得
-   */
-  getSharedUrl(): Promise<string | null>;
+  // ===== 初期化・状態確認 =====
 
   /**
-   * アプリを閉じる（保存/キャンセル後）
-   * WebViewを閉じて元のアプリに戻る
+   * デバイス機能を取得
+   * - AI対応判定
+   * - プラットフォーム判定
+   */
+  getDeviceCapabilities(): Promise<DeviceCapabilities>;
+
+  /**
+   * 音楽サービスの認証状態を取得
+   */
+  getAuthStatus(): Promise<AuthStatus>;
+
+  // ===== 音楽サービス連携 =====
+
+  /**
+   * Apple Music連携（iOS only）
+   * - メディアライブラリアクセス許可をリクエスト
+   */
+  connectAppleMusic(): Promise<BridgeResult>;
+
+  /**
+   * Spotify連携
+   * - OAuth認証フローを開始
+   */
+  connectSpotify(): Promise<BridgeResult>;
+
+  /**
+   * 現在再生中の曲を取得
+   * - 再生中でない場合は null
+   */
+  getCurrentSong(): Promise<Song | null>;
+
+  // ===== AI機能 =====
+
+  /**
+   * エピソード生成（オンデバイスAI）
+   * - 対応デバイスのみ
+   * - 見つからない場合は found: false
+   */
+  generateEpisode(song: Song): Promise<EpisodeResult>;
+
+  // ===== データ永続化 =====
+
+  /**
+   * 記録を保存
+   */
+  saveRecord(record: MusicRecordInput): Promise<BridgeResult<{ id: string }>>;
+
+  /**
+   * 記録一覧を取得
+   */
+  getRecords(filter?: MusicRecordFilter): Promise<MusicRecord[]>;
+
+  /**
+   * 記録を取得（単一）
+   */
+  getRecord(id: string): Promise<MusicRecord | null>;
+
+  /**
+   * 記録を更新
+   */
+  updateRecord(id: string, updates: MusicRecordUpdate): Promise<BridgeResult>;
+
+  /**
+   * 記録を削除
+   */
+  deleteRecord(id: string): Promise<BridgeResult>;
+
+  // ===== 位置情報 =====
+
+  /**
+   * 位置情報の権限をリクエスト
+   */
+  requestLocationPermission(): Promise<BridgeResult<{ granted: boolean }>>;
+
+  /**
+   * 現在地を取得
+   */
+  getCurrentLocation(): Promise<Location | null>;
+
+  // ===== UI補助 =====
+
+  /**
+   * ハプティクスフィードバック
+   */
+  triggerHapticFeedback(type: 'light' | 'medium' | 'heavy'): void;
+
+  /**
+   * アプリを閉じる
    */
   closeApp(): void;
 }
 
-/**
- * ネイティブブリッジAPI
- *
- * Web UIからネイティブ機能を呼び出すためのインターフェース
- */
-export interface NativeBridge {
-  /**
-   * 最近再生した楽曲を取得
-   * @param limit 取得件数（デフォルト: 50）
-   */
-  fetchRecentlyPlayed(limit?: number): Promise<Track[]>;
-
-  /**
-   * 聴取履歴を取得
-   * @param startDate 開始日時（ISO 8601形式）
-   * @param endDate 終了日時（ISO 8601形式）
-   */
-  fetchListeningHistory(
-    startDate: string,
-    endDate: string
-  ): Promise<ListeningHistoryEntry[]>;
-
-  /**
-   * 感情タグを更新
-   * @param trackId 楽曲ID
-   * @param emotionTags 感情タグ配列
-   */
-  updateEmotionTags(trackId: string, emotionTags: EmotionTag[]): Promise<void>;
-
-  /**
-   * メモを保存
-   * @param trackId 楽曲ID
-   * @param memo メモ内容
-   */
-  saveMemo(trackId: string, memo: string): Promise<void>;
-
-  /**
-   * 通知をスケジュール
-   * @param params 通知パラメータ
-   */
-  scheduleNotification(params: NotificationParams): Promise<void>;
-
-  /**
-   * データを永続化
-   * @param key キー
-   * @param value 値（JSONシリアライズ可能）
-   */
-  saveData(key: string, value: unknown): Promise<void>;
-
-  /**
-   * データを取得
-   * @param key キー
-   */
-  getData(key: string): Promise<unknown>;
-
-  /**
-   * データを削除
-   * @param key キー
-   */
-  deleteData(key: string): Promise<void>;
-
-  /**
-   * Spotifyアプリで楽曲を開く
-   * @param trackId Spotify Track ID
-   */
-  openInSpotify(trackId: string): Promise<void>;
-
-  /**
-   * 楽曲を共有
-   * @param trackId 楽曲ID
-   */
-  shareTrack(trackId: string): Promise<void>;
-}
+// ===== エラー =====
 
 /**
  * ブリッジAPIエラー
@@ -164,4 +301,76 @@ export class BridgeError extends Error {
     super(message);
     this.name = 'BridgeError';
   }
+}
+
+// ===== 旧API（後方互換用、将来削除予定） =====
+
+/**
+ * @deprecated 旧設計の型定義。新コンセプトでは使用しない。
+ */
+export interface Track {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArtUrl?: string;
+  playedAt: string;
+  durationMs: number;
+  audioFeatures?: AudioFeatures;
+}
+
+/**
+ * @deprecated 旧設計の型定義。新コンセプトでは使用しない。
+ */
+export interface AudioFeatures {
+  valence: number;
+  energy: number;
+  danceability: number;
+  acousticness: number;
+  tempo: number;
+}
+
+/**
+ * @deprecated 旧設計の型定義。新コンセプトでは使用しない。
+ */
+export interface EmotionTag {
+  id: string;
+  label: string;
+  color: string;
+}
+
+/**
+ * @deprecated 旧設計の型定義。新コンセプトでは使用しない。
+ */
+export interface ListeningHistoryEntry {
+  track: Track;
+  emotionTags: EmotionTag[];
+  memo?: string;
+  isManuallyEdited: boolean;
+}
+
+/**
+ * @deprecated 旧設計の型定義。新コンセプトでは使用しない。
+ */
+export interface NotificationParams {
+  title: string;
+  body: string;
+  scheduledAt?: string;
+  data?: Record<string, unknown>;
+}
+
+/**
+ * @deprecated 旧設計のAPI。新コンセプトでは HearloomBridge を使用。
+ */
+export interface NativeBridge {
+  fetchRecentlyPlayed(limit?: number): Promise<Track[]>;
+  fetchListeningHistory(startDate: string, endDate: string): Promise<ListeningHistoryEntry[]>;
+  updateEmotionTags(trackId: string, emotionTags: EmotionTag[]): Promise<void>;
+  saveMemo(trackId: string, memo: string): Promise<void>;
+  scheduleNotification(params: NotificationParams): Promise<void>;
+  saveData(key: string, value: unknown): Promise<void>;
+  getData(key: string): Promise<unknown>;
+  deleteData(key: string): Promise<void>;
+  openInSpotify(trackId: string): Promise<void>;
+  shareTrack(trackId: string): Promise<void>;
 }
